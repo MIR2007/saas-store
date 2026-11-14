@@ -40,7 +40,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
       <div className="w-full max-w-md bg-white border border-border rounded-2xl p-8 shadow-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3">E</div>
+          <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3">B</div>
           <h1 className="text-2xl font-bold text-foreground">إنشاء حساب</h1>
           <p className="text-sm text-muted mt-1">ابدأ متجرك في أقل من 10 دقايق</p>
         </div>

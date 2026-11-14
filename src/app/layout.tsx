@@ -9,8 +9,8 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "ايزي اوردر | منصة إنشاء المتاجر الإلكترونية",
-  description: "أنشئ متجرك الإلكتروني بنفسك في أقل من 10 دقايق، بدون خبرة برمجية.",
+  title: "Bee Panal | منصة إنشاء المتاجر الإلكترونية",
+  description: "أنشئ متجرك الإلكتروني بنفسك في أقل من 10 دقايق، بدون خبرة برمجية. منصة Bee Panal.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

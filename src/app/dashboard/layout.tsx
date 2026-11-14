@@ -12,8 +12,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <aside className="w-64 bg-white border-l border-border flex flex-col">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">E</span>
-            <span className="font-bold text-foreground">لوحة التحكم</span>
+            <span className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">B</span>
+            <span className="font-bold text-foreground">Bee Panal</span>
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1 text-sm">
