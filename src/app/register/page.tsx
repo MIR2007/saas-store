@@ -3,9 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLang } from "@/components/LanguageProvider";
+import LanguageToggle from "@/components/LanguageToggle";
+import Logo from "@/components/Logo";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,14 +43,15 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
       <div className="w-full max-w-md bg-white border border-border rounded-2xl p-8 shadow-sm">
+        <div className="flex justify-end mb-4"><LanguageToggle /></div>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3">B</div>
-          <h1 className="text-2xl font-bold text-foreground">إنشاء حساب</h1>
-          <p className="text-sm text-muted mt-1">ابدأ متجرك في أقل من 10 دقايق</p>
+          <div className="mx-auto mb-3 flex justify-center"><Logo size="lg" href="#" /></div>
+          <h1 className="text-2xl font-bold text-foreground">{t.auth.register}</h1>
+          <p className="text-sm text-muted mt-1">{t.auth.start}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">الاسم</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t.auth.name}</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -55,7 +60,7 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">البريد الإلكتروني</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t.auth.email}</label>
             <input
               type="email"
               value={email}
@@ -65,7 +70,7 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">كلمة المرور</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t.auth.password}</label>
             <input
               type="password"
               value={password}
@@ -81,13 +86,13 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full bg-primary text-white font-medium py-2.5 rounded-lg hover:bg-primary-dark transition disabled:opacity-60"
           >
-            {loading ? "جاري الإنشاء..." : "إنشاء حساب"}
+            {loading ? t.common.loading : t.auth.submitReg}
           </button>
         </form>
         <p className="text-sm text-muted text-center mt-6">
-          لديك حساب بالفعل؟{" "}
+          {t.auth.hasAccount}{" "}
           <Link href="/login" className="text-primary font-medium hover:underline">
-            تسجيل دخول
+            {t.auth.login}
           </Link>
         </p>
       </div>

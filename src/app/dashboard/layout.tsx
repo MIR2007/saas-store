@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
+import Logo from "@/components/Logo";
+import { VERSION } from "@/lib/version";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -12,8 +14,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <aside className="w-64 bg-white border-l border-border flex flex-col">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">B</span>
-            <span className="font-bold text-foreground">Bee Panal</span>
+            <Logo size="sm" />
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1 text-sm">
@@ -28,6 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="text-sm text-foreground font-medium mb-2 truncate">{session.name}</div>
           <div className="text-xs text-muted truncate mb-3">{session.email}</div>
           <LogoutButton />
+          <div className="text-[10px] text-muted mt-3">v{VERSION}</div>
         </div>
       </aside>
       <main className="flex-1 min-w-0">{children}</main>

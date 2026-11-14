@@ -27,6 +27,16 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Protect admin routes
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    const adminToken = request.cookies.get("bp_admin")?.value;
+    if (adminToken !== "1") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Redirect logged-in users away from auth pages
   if (pathname === "/login" || pathname === "/register") {
     const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -46,5 +56,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/login", "/register", "/admin/:path*"],
 };

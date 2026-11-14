@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
+import { LanguageProvider } from "@/components/LanguageProvider";
 
 const tajawal = Tajawal({
   variable: "--font-tajawal",
@@ -19,8 +20,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ar"
       dir="rtl"
       className={`${tajawal.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

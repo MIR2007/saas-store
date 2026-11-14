@@ -3,11 +3,15 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useLang } from "@/components/LanguageProvider";
+import LanguageToggle from "@/components/LanguageToggle";
+import Logo from "@/components/Logo";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
+  const { t } = useLang();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,14 +45,15 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
       <div className="w-full max-w-md bg-white border border-border rounded-2xl p-8 shadow-sm">
+        <div className="flex justify-end mb-4"><LanguageToggle /></div>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3">B</div>
-          <h1 className="text-2xl font-bold text-foreground">تسجيل دخول</h1>
-          <p className="text-sm text-muted mt-1">مرحباً بعودتك</p>
+          <div className="mx-auto mb-3 flex justify-center"><Logo size="lg" href="#" /></div>
+          <h1 className="text-2xl font-bold text-foreground">{t.auth.login}</h1>
+          <p className="text-sm text-muted mt-1">{t.auth.welcome}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">البريد الإلكتروني</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t.auth.email}</label>
             <input
               type="email"
               value={email}
@@ -58,7 +63,7 @@ function LoginForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">كلمة المرور</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t.auth.password}</label>
             <input
               type="password"
               value={password}
@@ -73,13 +78,13 @@ function LoginForm() {
             disabled={loading}
             className="w-full bg-primary text-white font-medium py-2.5 rounded-lg hover:bg-primary-dark transition disabled:opacity-60"
           >
-            {loading ? "جاري الدخول..." : "دخول"}
+            {loading ? t.common.loading : t.auth.submit}
           </button>
         </form>
         <p className="text-sm text-muted text-center mt-6">
-          ليس لديك حساب؟{" "}
+          {t.auth.noAccount}{" "}
           <Link href="/register" className="text-primary font-medium hover:underline">
-            اشترك مجاناً
+            {t.auth.signupFree}
           </Link>
         </p>
       </div>
