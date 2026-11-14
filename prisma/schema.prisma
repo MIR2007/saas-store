@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  stores       Store[]
+}
+
+model Store {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String     @unique
+  description String     @default("")
+  logo        String     @default("")
+  themeColor  String     @default("#2563eb")
+  currency    String     @default("IQD")
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  categories  Category[]
+  products    Product[]
+  orders      Order[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  storeId  String
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name     String
+  slug     String
+  products Product[]
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  storeId      String
+  store        Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId   String?
+  category     Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name         String
+  description  String      @default("")
+  price        Float
+  comparePrice Float?
+  images       String      @default("[]")
+  stock        Int         @default(0)
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  orderItems   OrderItem[]
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  storeId        String
+  store          Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerName   String
+  customerPhone  String
+  customerAddress String     @default("")
+  notes          String      @default("")
+  status         String      @default("pending")
+  total          Float
+  createdAt      DateTime    @default(now())
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  price     Float
+  quantity  Int
+}
