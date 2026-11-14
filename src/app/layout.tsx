@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { LanguageProvider } from "@/components/LanguageProvider";
 
@@ -21,7 +22,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       dir="rtl"
       className={`${tajawal.variable} h-full antialiased`}
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
     >
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`}
+        </Script>
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <LanguageProvider>{children}</LanguageProvider>
       </body>

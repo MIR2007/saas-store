@@ -7,7 +7,7 @@ export default function LanguageToggle() {
   return (
     <button
       onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
-      className="text-sm border border-border rounded-lg px-3 py-1.5 hover:bg-surface transition"
+      className="grid h-9 min-w-9 place-items-center rounded-lg border border-border bg-card px-2.5 text-xs font-bold text-foreground transition-colors hover:bg-surface"
       aria-label="Switch language"
     >
       {locale === "ar" ? "EN" : "AR"}

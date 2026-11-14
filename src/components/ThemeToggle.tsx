@@ -6,10 +6,7 @@ export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("theme");
-    const isDark = saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    setDark(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
+    setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
   function toggle() {
@@ -17,13 +14,15 @@ export default function ThemeToggle() {
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
     localStorage.setItem("theme", next ? "dark" : "light");
+    document.documentElement.style.colorScheme = next ? "dark" : "light";
   }
 
   return (
     <button
       onClick={toggle}
-      className="text-sm border border-border rounded-lg px-3 py-1.5 hover:bg-surface transition"
+      className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card text-sm text-foreground transition-colors hover:bg-surface"
       aria-label="Toggle theme"
+      title="Toggle theme"
     >
       {dark ? "☀" : "☾"}
     </button>
