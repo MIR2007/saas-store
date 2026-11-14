@@ -51,18 +51,12 @@ import { VERSION } from "@/lib/version";
 const BRAND_MARKS = ["NOOR", "LAYALI", "TECHHUB", "ZAHRA", "CASA", "GLOW", "URBAN", "LITTLE ONE"];
 
 const THEME_IMAGES = {
-  fashion:
-    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=900&q=80&auto=format&fit=crop",
-  perfume:
-    "https://images.unsplash.com/photo-1541643600914-78b084683601?w=900&q=80&auto=format&fit=crop",
-  electronics:
-    "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=900&q=80&auto=format&fit=crop",
-  beauty:
-    "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=900&q=80&auto=format&fit=crop",
-  furniture:
-    "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&q=80&auto=format&fit=crop",
-  sports:
-    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=900&q=80&auto=format&fit=crop",
+  fashion: "/images/theme-fashion.jpg",
+  perfume: "/images/theme-perfume.jpg",
+  electronics: "/images/theme-electronics.jpg",
+  beauty: "/images/theme-beauty.jpg",
+  furniture: "/images/theme-furniture.jpg",
+  sports: "/images/theme-sports.jpg",
 };
 
 const PAYMENTS = ["Visa", "Mastercard", "PayPal", "Apple Pay", "Google Pay", "Mada"];
