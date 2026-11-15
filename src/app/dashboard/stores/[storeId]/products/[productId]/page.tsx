@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { ImagePlus, Package, Pencil, Tags, Wallet } from "lucide-react";
+import PageHeader from "@/components/dashboard/PageHeader";
+import { currencySymbol, formatMoney } from "@/lib/format";
+import { cardClass, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -10,6 +15,7 @@ export default function EditProductPage() {
   const router = useRouter();
 
   const [categories, setCategories] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("EGP");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -26,8 +32,10 @@ export default function EditProductPage() {
     Promise.all([
       fetch(`/api/stores/${storeId}/categories`).then((r) => r.json()),
       fetch(`/api/stores/${storeId}/products/${productId}`).then((r) => r.json()),
-    ]).then(([cats, prod]) => {
+      fetch(`/api/stores/${storeId}`).then((r) => r.json()),
+    ]).then(([cats, prod, storeData]) => {
       setCategories(cats.categories || []);
+      if (storeData.store?.currency) setCurrency(storeData.store.currency);
       const p = prod.product;
       if (p) {
         setName(p.name);
@@ -69,67 +77,201 @@ export default function EditProductPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "فشل تحديث المنتج");
+        setError(data.error || "مش قادرين نحدّث المنتج");
         return;
       }
       router.push(`/dashboard/stores/${storeId}/products`);
       router.refresh();
     } catch {
-      setError("خطأ في الاتصال");
+      setError("مشكلة في الاتصال، جرّب تاني.");
     } finally {
       setLoading(false);
     }
   }
 
-  if (!loaded) return <div className="p-6">جاري التحميل...</div>;
+  if (!loaded) {
+    return (
+      <div className="p-5 sm:p-6 lg:p-8">
+        <div className="h-24 animate-pulse rounded-2xl bg-surface" />
+        <div className="mt-4 h-96 animate-pulse rounded-2xl bg-surface" />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 lg:p-8 max-w-2xl">
-      <h1 className="text-2xl font-bold text-foreground mb-6">تعديل المنتج</h1>
-      <form onSubmit={handleSubmit} className="bg-white border border-border rounded-2xl p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1">اسم المنتج</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+    <div className="p-5 sm:p-6 lg:p-8">
+      <PageHeader
+        backHref={`/dashboard/stores/${storeId}/products`}
+        backLabel="المنتجات"
+        eyebrow="تعديل منتج"
+        title={name || "تعديل المنتج"}
+        subtitle="حدّث التفاصيل والسعر والمخزون في أي وقت."
+        icon={<Pencil className="h-6 w-6" />}
+      />
+
+      <form onSubmit={handleSubmit} className="grid max-w-5xl gap-6 lg:grid-cols-5">
+        <div className="space-y-5 lg:col-span-3">
+          <section className={`${cardClass} p-6`}>
+            <div className="mb-5 flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              <h2 className="font-extrabold text-foreground">تفاصيل المنتج</h2>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <label className={labelClass}>اسم المنتج</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} required className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>الوصف</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className={`${cardClass} p-6`}>
+            <div className="mb-5 flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              <h2 className="font-extrabold text-foreground">السعر والمخزون</h2>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className={labelClass}>السعر ({currencySymbol(currency)})</label>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                  min="0"
+                  step="0.01"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  سعر قبل الخصم <span className="font-normal text-muted">(اختياري)</span>
+                </label>
+                <input
+                  type="number"
+                  value={comparePrice}
+                  onChange={(e) => setComparePrice(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>المخزون</label>
+                <input
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  min="0"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className={`${cardClass} p-6`}>
+            <div className="mb-5 flex items-center gap-2">
+              <Tags className="h-5 w-5 text-primary" />
+              <h2 className="font-extrabold text-foreground">التصنيف</h2>
+            </div>
+            <label className={labelClass}>تصنيف المنتج</label>
+            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
+              <option value="">بدون تصنيف</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </section>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1">الوصف</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">السعر</label>
-            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required min="0" step="0.01" className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+
+        <div className="space-y-5 lg:col-span-2">
+          <section className={`${cardClass} p-6`}>
+            <div className="mb-4 flex items-center gap-2">
+              <ImagePlus className="h-5 w-5 text-primary" />
+              <h2 className="font-extrabold text-foreground">صورة المنتج</h2>
+            </div>
+            <div className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-dashed border-border bg-surface">
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imageUrl} alt="معاينة المنتج" className="h-full w-full object-cover" />
+              ) : (
+                <div className="text-center text-muted">
+                  <ImagePlus className="mx-auto h-8 w-8" />
+                  <p className="mt-2 text-xs">مفيش صورة للمنتج</p>
+                </div>
+              )}
+            </div>
+            <label className={`${labelClass} mt-4`}>رابط الصورة</label>
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://…"
+              className={inputClass}
+              dir="ltr"
+            />
+          </section>
+
+          <section className={`${cardClass} p-6`}>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-extrabold text-foreground">ظاهر في المتجر</h2>
+                <p className="mt-1 text-[11px] text-muted">قفلها لو عايز تخفي المنتج مؤقتًا.</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={active}
+                onClick={() => setActive((v) => !v)}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                  active ? "bg-emerald-500" : "bg-stone-300 dark:bg-stone-700"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-all ${
+                    active ? "left-[22px]" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </section>
+
+          {price && (
+            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-5">
+              <p className="text-[11px] font-bold text-primary">معاينة السعر</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-extrabold text-foreground">{formatMoney(Number(price), currency)}</span>
+                {comparePrice && Number(comparePrice) > Number(price) && (
+                  <span className="text-sm text-muted line-through">{formatMoney(Number(comparePrice), currency)}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+              {error}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2.5">
+            <button type="submit" disabled={loading} className={`${primaryBtn} w-full`}>
+              {loading ? "بنحفظ التغييرات..." : "حفظ التغييرات"}
+            </button>
+            <Link href={`/dashboard/stores/${storeId}/products`} className={`${secondaryBtn} w-full`}>
+              إلغاء
+            </Link>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">سعر المقارنة</label>
-            <input type="number" value={comparePrice} onChange={(e) => setComparePrice(e.target.value)} min="0" step="0.01" className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1">المخزون</label>
-          <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} min="0" className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1">التصنيف</label>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40">
-            <option value="">— بدون تصنيف —</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1">رابط صورة المنتج</label>
-          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-        </div>
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id="active" checked={active} onChange={(e) => setActive(e.target.checked)} />
-          <label htmlFor="active" className="text-sm text-foreground">نشط</label>
-        </div>
-        {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>}
-        <button type="submit" disabled={loading} className="bg-primary text-white font-medium px-6 py-2.5 rounded-lg hover:bg-primary-dark transition disabled:opacity-60">
-          {loading ? "جاري الحفظ..." : "حفظ التغييرات"}
-        </button>
       </form>
     </div>
   );

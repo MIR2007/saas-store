@@ -59,7 +59,7 @@ const THEME_IMAGES = {
   sports: "/images/theme-sports.jpg",
 };
 
-const PAYMENTS = ["Visa", "Mastercard", "PayPal", "Apple Pay", "Google Pay", "Mada"];
+const PAYMENTS = ["فوري", "إنستاباي", "فودافون كاش", "ميزة", "Visa", "Mastercard"];
 
 const SOCIALS = [
   {
@@ -155,7 +155,7 @@ export default function Home() {
   const stats = [
     { value: 2, suffix: "K+", decimals: 0, label: ar ? "متجر نشط" : "Active stores" },
     { value: 300, suffix: "K+", decimals: 0, label: ar ? "طلب تمت معالجته" : "Orders processed" },
-    { value: 10, suffix: "+", decimals: 0, label: ar ? "دولة حول العالم" : "Countries" },
+    { value: 27, suffix: "", decimals: 0, label: ar ? "محافظة بنوصلها" : "Governorates covered" },
     { value: 99.9, suffix: "%", decimals: 1, label: ar ? "وقت تشغيل" : "Uptime" },
   ];
 
@@ -215,21 +215,21 @@ export default function Home() {
       icon: ShoppingBag,
       title: ar ? "كتالوج منتجات مرن" : "Flexible product catalog",
       desc: ar
-        ? "منتجات بسيطة ومتغيرات (مقاسات وألوان) — حتى 3 خصائص و100 متغير لكل منتج."
+        ? "منتجات بسيطة ومتغيرات (مقاسات وألوان) — لحد 3 خصائص و100 متغير لكل منتج."
         : "Simple products and variants (size, color) — up to 3 options and 100 variants.",
     },
     {
       icon: FolderTree,
       title: ar ? "أقسام وماركات" : "Categories & brands",
       desc: ar
-        ? "رتّب بضاعتك في أقسام متفرعة وماركات ليبقى متجرك منظمًا وسهل التصفح."
+        ? "رتّب بضاعتك في أقسام متفرعة وماركات عشان متجرك يفضل منظم وسهل التصفح."
         : "Organize products into nested categories and brands for easy browsing.",
     },
     {
       icon: Users,
       title: ar ? "سجل العملاء" : "Customer records",
       desc: ar
-        ? "تاريخ طلبات كل عميل وتفضيلاته في مكان واحد، لبناء علاقة تدوم."
+        ? "تاريخ طلبات كل عميل وتفضيلاته في مكان واحد، عشان تبني علاقة تدوم."
         : "Every customer's order history and preferences in one place.",
     },
     {
@@ -244,18 +244,18 @@ export default function Home() {
   const steps = [
     {
       icon: CreditCard,
-      title: ar ? "اختر باقتك" : "Choose your plan",
-      desc: ar ? "ابدأ بتجربة مجانية 7 أيام — بدون بطاقة بنكية." : "Start a 7-day free trial — no credit card required.",
+      title: ar ? "اختار باقتك" : "Choose your plan",
+      desc: ar ? "ابدأ بتجربة مجانية 7 أيام — من غير بطاقة بنكية." : "Start a 7-day free trial — no credit card required.",
     },
     {
       icon: Palette,
       title: ar ? "ظبّط شكل متجرك" : "Design your store",
-      desc: ar ? "اختر ثيمًا، ارفع شعارك، وحدّد ألوانك في دقائق." : "Pick a theme, upload your logo, set your colors in minutes.",
+      desc: ar ? "اختار ثيم، ارفع شعارك، وحدّد ألوانك في دقايق." : "Pick a theme, upload your logo, set your colors in minutes.",
     },
     {
       icon: Upload,
       title: ar ? "ارفع منتجاتك" : "Upload products",
-      desc: ar ? "أضف منتجاتك يدويًا أو استوردها دفعة واحدة من Excel." : "Add products manually or import them in bulk from Excel.",
+      desc: ar ? "ضيف منتجاتك بيدك أو استوردها كلها مرة واحدة من Excel." : "Add products manually or import them in bulk from Excel.",
     },
     {
       icon: Inbox,
@@ -273,90 +273,90 @@ export default function Home() {
     {
       icon: Star,
       title: ar ? "نقاط الولاء" : "Loyalty points",
-      desc: ar ? "اكسب عملاءك نقاطًا مع كل طلب واستبدلوها بخصومات." : "Customers earn points on every order and redeem them for discounts.",
+      desc: ar ? "عملاؤك بيكسبوا نقاط مع كل طلب ويستبدلوها بخصومات." : "Customers earn points on every order and redeem them for discounts.",
     },
     {
       icon: Gift,
       title: ar ? "اشترِ X واحصل على Y" : "Buy X get Y",
-      desc: ar ? "عروض تلقائية تُطبّق في السلة بدون الحاجة لكوبون." : "Automatic offers applied at cart without a coupon.",
+      desc: ar ? "عروض بتتطبق تلقائي في السلة من غير كوبون." : "Automatic offers applied at cart without a coupon.",
     },
     {
       icon: Mail,
       title: ar ? "حملات بريدية" : "Email campaigns",
-      desc: ar ? "أرسل عروضك لعملائك وتابع من فتح الرسالة ومن اشترى." : "Send offers to customers and track opens and purchases.",
+      desc: ar ? "ابعت عروضك لعملائك وتابع مين فتح الرسالة ومين اشترى." : "Send offers to customers and track opens and purchases.",
     },
     {
       icon: Handshake,
       title: ar ? "مسوّقون بالعمولة" : "Affiliates",
-      desc: ar ? "كود خصم لكل مسوّق، والنظام يحسب مبيعاته وعمولته تلقائيًا." : "A code for each affiliate, with sales and commissions calculated automatically.",
+      desc: ar ? "كود خصم لكل مسوّق، والنظام بيحسب مبيعاته وعمولته تلقائي." : "A code for each affiliate, with sales and commissions calculated automatically.",
     },
   ];
 
   const testimonials = [
     {
-      name: ar ? "أحمد العبيدي" : "Ahmed Al-Obaidi",
-      role: ar ? "مؤسس متجر النخبة · بغداد" : "Founder, Elite Store · Baghdad",
+      name: ar ? "أحمد عبد الرحمن" : "Ahmed Abdel Rahman",
+      role: ar ? "صاحب متجر النخبة · القاهرة" : "Founder, Elite Store · Cairo",
       initial: ar ? "أ" : "A",
       gradient: "from-amber-400 to-orange-500",
       text: ar
-        ? "خلال أسبوع واحد تضاعفت طلباتي. لوحة التحكم بسيطة لدرجة أنني أدير المتجر بالكامل من الموبايل."
+        ? "خلال أسبوع واحد طلباتي اتضاعفت. لوحة التحكم سهلة لدرجة إني بيدير المتجر كله من الموبايل وأنا في الشغل."
         : "My orders doubled in one week. The dashboard is so simple I run the entire store from my phone.",
     },
     {
-      name: ar ? "سارة الحسيني" : "Sara Al-Husseini",
-      role: ar ? "صاحبة متجر ليالي · دبي" : "Owner, Layali · Dubai",
+      name: ar ? "سارة المصري" : "Sara El-Masry",
+      role: ar ? "صاحبة متجر ليالي · إسكندرية" : "Owner, Layali · Alexandria",
       initial: ar ? "س" : "S",
       gradient: "from-rose-400 to-pink-500",
       text: ar
-        ? "أفضل قرار اتخذته لمتجري. ربط الدفع والشحن كان أسهل مما توقعت، والدعم متواجد دائمًا."
+        ? "أحسن قرار أخدته لمتجري. ربط الدفع والشحن كان أسهل بكتير مما توقعت، والدعم بيرد عليك في نفس اليوم."
         : "Best decision I made for my store. Payments and shipping were easier than expected, and support is always there.",
     },
     {
-      name: ar ? "محمد الكناني" : "Mohammed Al-Kinani",
-      role: ar ? "متجر تِك هَب · الرياض" : "TechHub · Riyadh",
+      name: ar ? "محمد الشربيني" : "Mohamed El-Sherbiny",
+      role: ar ? "صاحب تِك هَب · المنصورة" : "TechHub · Mansoura",
       initial: ar ? "م" : "M",
       gradient: "from-sky-400 to-blue-500",
       text: ar
-        ? "السرعة والاستقرار ممتازان. صفحة المتجر تفتح فورًا، وتقارير المبيعات ساعدتني أفهم عملائي أكثر."
+        ? "السرعة والاستقرار ممتازين. صفحة المتجر بتفتح على طول، وتقارير المبيعات ساعدتني أفهم عملائي أكتر."
         : "Speed and stability are excellent. The storefront loads instantly, and reports help me understand customers.",
     },
   ];
 
   const faqs = [
     {
-      q: ar ? "هل أحتاج لخبرة برمجية لإدارة متجري؟" : "Do I need coding experience?",
+      q: ar ? "محتاج خبرة برمجية عشان أدير متجري؟" : "Do I need coding experience?",
       a: ar
-        ? "إطلاقًا. كل خطوة تتم من لوحة التحكم: اختيار التصميم، رفع المنتجات، إدارة الطلبات، وربط الدفع والشحن — بدون كتابة أي كود."
+        ? "خالص. كل خطوة بتتعمل من لوحة التحكم: اختيار التصميم، رفع المنتجات، إدارة الطلبات، وربط الدفع والشحن — من غير ما تكتب سطر كود."
         : "Not at all. Everything happens from the dashboard: design, products, orders, payments and shipping — no code required.",
     },
     {
-      q: ar ? "كيف أستلم مدفوعات عملائي؟" : "How do I receive customer payments?",
+      q: ar ? "إزاي أستلم فلوس عملائي؟" : "How do I receive customer payments?",
       a: ar
-        ? "الدفع عند الاستلام متاح في كل الباقات. ومع الباقة الاحترافية يمكنك تفعيل بوابات الدفع الإلكتروني (بطاقات ومحافظ رقمية) لاستلام المبالغ مباشرة."
+        ? "الدفع عند الاستلام متاح في كل الباقات. ومع الباقة الاحترافية تقدر تفعّل فوري وإنستاباي وفودافون كاش وبطاقات ميزة، وتستلم المبالغ مباشرة."
         : "Cash on delivery is available on all plans. With the Professional plan you can enable online payment gateways (cards and wallets) to receive funds directly.",
     },
     {
-      q: ar ? "هل يمكنني استخدام دومين خاص بي؟" : "Can I use my own domain?",
+      q: ar ? "أقدر أستخدم دومين خاص بيا؟" : "Can I use my own domain?",
       a: ar
-        ? "نعم. يمكنك ربط أي دومين تملكه بمتجرك، أو استخدام رابط فرعي مجاني على beepanal.store. نوفر لك خطوات الربط كاملة."
+        ? "أيوه. تقدر تربط أي دومين تملكه بمتجرك، أو تستخدم لينك فرعي مجاني على beepanal.store، وإحنا بنمشي معاك في خطوات الربط كاملة."
         : "Yes. Connect any domain you own, or use a free subdomain on beepanal.store. We provide the full setup steps.",
     },
     {
-      q: ar ? "هل توجد رسوم خفية؟" : "Are there hidden fees?",
+      q: ar ? "في رسوم مخفية؟" : "Are there hidden fees?",
       a: ar
-        ? "لا. الأسعار واضحة ومعلنة مسبقًا، ولا نأخذ أي عمولة على مبيعاتك في الباقة الاحترافية. يمكنك إلغاء الاشتراك في أي وقت."
+        ? "لأ. الأسعار واضحة ومعلنة من الأول، ومفيش أي عمولة على مبيعاتك في الباقة الاحترافية. وتقدر تلغي الاشتراك في أي وقت."
         : "No. Pricing is clear and upfront, with no commission on your sales on the Professional plan. Cancel anytime.",
     },
     {
-      q: ar ? "كم يستغرق تجهيز المتجر؟" : "How long does setup take?",
+      q: ar ? "المتجر بياخد وقت قد إيه عشان يجهز؟" : "How long does setup take?",
       a: ar
-        ? "أقل من 10 دقائق في المتوسط: أنشئ حسابك، اختر تصميمًا، أضف أول منتج، وشارك رابط متجرك مع عملائك."
+        ? "أقل من 10 دقايق في المتوسط: اعمل حسابك، اختار التصميم، ضيف أول منتج، وابعت لينك متجرك لعملائك."
         : "Under 10 minutes on average: create an account, pick a theme, add your first product, and share your link.",
     },
     {
-      q: ar ? "هل يمكنني تغيير باقتي لاحقًا؟" : "Can I change my plan later?",
+      q: ar ? "أقدر أغيّر باقتي بعدين؟" : "Can I change my plan later?",
       a: ar
-        ? "نعم، يمكنك الترقية أو التخفيض في أي وقت من داخل لوحة التحكم، وسيتم احتساب الفرق تلقائيًا."
+        ? "أيوه، تقدر ترقّي أو تخفّض في أي وقت من لوحة التحكم، والفرق بيتحسب تلقائي."
         : "Yes, upgrade or downgrade anytime from your dashboard; the difference is prorated automatically.",
     },
   ];
@@ -369,8 +369,8 @@ export default function Home() {
           <Sparkles className="h-3.5 w-3.5 shrink-0" />
           <span>
             {ar
-              ? "إطلاق Bee Panal v1.0 — جرّب المنصة 7 أيام مجانًا، بدون بطاقة بنكية"
-              : "Bee Panal v1.0 is live — 7-day free trial, no credit card"}
+              ? `إطلاق Bee Panal v${VERSION} — جرّبها 7 أيام ببلاش، ومن غير بطاقة بنكية`
+              : `Bee Panal v${VERSION} is live — 7-day free trial, no credit card`}
           </span>
           <Link href="/register" className="hidden items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 font-bold hover:bg-white/25 sm:inline-flex">
             {ar ? "ابدأ الآن" : "Start now"}
@@ -474,7 +474,7 @@ export default function Home() {
                 <Reveal y={16}>
                   <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary">
                     <Zap className="h-3.5 w-3.5" />
-                    {ar ? "منصة المتاجر الأسرع نموًا في المنطقة" : "The fastest-growing store platform in the region"}
+                    {ar ? "منصة المتاجر الأسرع نموًا في مصر" : "The fastest-growing store platform in the region"}
                   </span>
                 </Reveal>
 
@@ -482,12 +482,12 @@ export default function Home() {
                   <h1 className="mt-6 text-balance text-4xl font-extrabold leading-[1.12] tracking-tight sm:text-5xl lg:text-6xl">
                     {ar ? (
                       <>
-                        متجرك الإلكتروني جاهز{" "}
+                        متجرك الأونلاين جاهز{" "}
                         <span className="animate-gradient bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
-                          في دقائق
+                          في دقايق
                         </span>
                         <br />
-                        بدون مبرمج
+                        من غير مبرمج
                       </>
                     ) : (
                       <>
@@ -505,7 +505,7 @@ export default function Home() {
                 <Reveal delay={160}>
                   <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted sm:text-lg lg:mx-0">
                     {ar
-                      ? "كل ما تحتاجه لإدارة منتجاتك وطلباتك وعملائك في لوحة تحكم واحدة أنيقة. تجربة مجانية 7 أيام، بدون بطاقة بنكية."
+                      ? "كل اللي محتاجه عشان تدير منتجاتك وطلباتك وعملائك من لوحة تحكم واحدة. جرّبها 7 أيام ببلاش، ومن غير بطاقة بنكية."
                       : "Everything you need to manage products, orders and customers in one beautiful dashboard. 7-day free trial, no credit card."}
                   </p>
                 </Reveal>
@@ -516,7 +516,7 @@ export default function Home() {
                       href="/register"
                       className="shine group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-xl shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-amber-500/35 sm:w-auto"
                     >
-                      {ar ? "ابدأ تجربتك المجانية" : "Start your free trial"}
+                      {ar ? "ابدأ تجربتك ببلاش" : "Start your free trial"}
                       <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                     </Link>
                     <Link
@@ -568,7 +568,7 @@ export default function Home() {
                         <span className="ms-1 text-xs font-bold text-foreground">4.9/5</span>
                       </div>
                       <p className="text-xs text-muted">
-                        {ar ? "انضم إلى أكثر من 2,000 تاجر يثقون بنا" : "Join 2,000+ merchants who trust us"}
+                        {ar ? "انضم لأكتر من 2,000 تاجر مصري بيثقوا فينا" : "Join 2,000+ merchants who trust us"}
                       </p>
                     </div>
                   </div>
@@ -586,7 +586,7 @@ export default function Home() {
         <section className="border-y border-border bg-surface py-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-muted">
-              {ar ? "يثق بنا روّاد الأعمال في مختلف المجالات" : "Trusted by entrepreneurs across industries"}
+              {ar ? "يثق بنا روّاد الأعمال في كل محافظات مصر" : "Trusted by entrepreneurs across industries"}
             </p>
             <div className="marquee-mask marquee-paused overflow-hidden">
               <div className="animate-marquee flex w-max items-center gap-14">
@@ -630,7 +630,7 @@ export default function Home() {
                 title={
                   ar ? (
                     <>
-                      كل ما تحتاجه لإدارة متجرك{" "}
+                      كل اللي محتاجه لإدارة متجرك{" "}
                       <span className="text-primary">في مكان واحد</span>
                     </>
                   ) : (
@@ -642,7 +642,7 @@ export default function Home() {
                 }
                 desc={
                   ar
-                    ? "من أول منتج إلى آخر طلب — أدوات احترافية صُممت لتوفير وقتك وزيادة مبيعاتك."
+                    ? "من أول منتج لآخر طلب — أدوات احترافية بتوفر وقتك وتزوّد مبيعاتك."
                     : "From your first product to your last order — professional tools built to save time and grow sales."
                 }
               />
@@ -661,7 +661,7 @@ export default function Home() {
                       </h3>
                       <p className="mt-1.5 text-sm leading-relaxed text-muted">
                         {ar
-                          ? "تابع كل طلب من لحظة إنشائه حتى التسليم، وحدّث حالته وأرسل إشعارًا للعميل بضغطة."
+                          ? "تابع كل طلب من لحظة وصوله لحد التسليم، وحدّث حالته وابعت إشعار للعميل بضغطة."
                           : "Track every order from creation to delivery, update statuses, and notify customers in one click."}
                       </p>
                     </div>
@@ -672,9 +672,9 @@ export default function Home() {
                   </div>
                   <div className="mt-5 space-y-2">
                     {[
-                      { name: ar ? "أحمد العبيدي" : "Ahmed Al-Obaidi", status: ar ? "مكتمل" : "Completed", cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", amount: ar ? "3,200 ر.س" : "SAR 3,200", icon: Headphones, tile: "from-amber-400 to-orange-500" },
-                      { name: ar ? "سارة الحسيني" : "Sara Al-Husseini", status: ar ? "قيد الشحن" : "Shipping", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400", amount: ar ? "1,850 ر.س" : "SAR 1,850", icon: Watch, tile: "from-sky-400 to-blue-500" },
-                      { name: ar ? "محمد الكناني" : "Mohammed Al-Kinani", status: ar ? "جديد" : "New", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400", amount: ar ? "980 ر.س" : "SAR 980", icon: Footprints, tile: "from-emerald-400 to-teal-500" },
+                      { name: ar ? "أحمد عبد الرحمن" : "Ahmed Abdel Rahman", status: ar ? "مكتمل" : "Completed", cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", amount: ar ? "3,200 ج.م" : "EGP 3,200", icon: Headphones, tile: "from-amber-400 to-orange-500" },
+                      { name: ar ? "سارة المصري" : "Sara El-Masry", status: ar ? "قيد الشحن" : "Shipping", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400", amount: ar ? "1,850 ج.م" : "EGP 1,850", icon: Watch, tile: "from-sky-400 to-blue-500" },
+                      { name: ar ? "محمد الشربيني" : "Mohamed El-Sherbiny", status: ar ? "جديد" : "New", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400", amount: ar ? "980 ج.م" : "EGP 980", icon: Footprints, tile: "from-emerald-400 to-teal-500" },
                     ].map((o, i) => (
                       <div key={o.name} className="flex items-center gap-3 rounded-xl border border-border bg-surface p-2.5 transition-colors group-hover:border-primary/20">
                         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${o.tile} text-white`}>
@@ -702,7 +702,7 @@ export default function Home() {
                   </h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted">
                     {ar
-                      ? "اعرف أكثر منتج يُباع، وما يحقق أرباحًا، ومتى يزيد البيع — قرارات مبنية على أرقام حقيقية."
+                      ? "اعرف أكتر منتج بيتبيع، وإيه اللي بيجيب مكسب، وإمتى البيع بيزيد — قرارات مبنية على أرقام حقيقية."
                       : "See your best sellers, profit drivers, and peak sales times — decisions backed by real numbers."}
                   </p>
                   <div className="mt-5 rounded-xl border border-border bg-surface p-4">
@@ -713,7 +713,7 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="mt-1 text-2xl font-extrabold text-foreground">
-                      {ar ? "48,250 ر.س" : "SAR 48,250"}
+                      {ar ? "48,250 ج.م" : "EGP 48,250"}
                     </div>
                     <div className="mt-3 flex h-16 items-end gap-1.5">
                       {[40, 62, 45, 78, 58, 92, 70, 84].map((h, i) => (
@@ -747,7 +747,7 @@ export default function Home() {
                   </h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted">
                     {ar
-                      ? "ارفع آلاف المنتجات دفعة واحدة من ملف Excel، وصدّر طلباتك بسهولة."
+                      ? "ارفع آلاف المنتجات مرة واحدة من ملف Excel، وصدّر طلباتك بسهولة."
                       : "Upload thousands of products at once from Excel, and export orders easily."}
                   </p>
                 </div>
@@ -761,7 +761,7 @@ export default function Home() {
                   </h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted">
                     {ar
-                      ? "الدفع عند الاستلام في كل الباقات، والدفع أونلاين وتكامل الشحن مع الاحترافية."
+                      ? "الدفع عند الاستلام في كل الباقات، وفوري وإنستاباي وفودافون كاش وتكامل الشحن مع الاحترافية."
                       : "Cash on delivery on all plans, plus online payments and shipping integrations on Pro."}
                   </p>
                 </div>
@@ -777,7 +777,7 @@ export default function Home() {
                   </h3>
                   <p className="mt-2 max-w-md text-sm leading-relaxed text-white/80">
                     {ar
-                      ? "ابدأ اليوم واكتشف بنفسك لماذا يختار آلاف التجار Bee Panal لإدارة تجارتهم."
+                      ? "ابدأ النهاردة واكتشف بنفسك ليه آلاف التجار المصريين بيختاروا Bee Panal لإدارة تجارتهم."
                       : "Start today and see why thousands of merchants choose Bee Panal."}
                   </p>
                   <Link
@@ -812,7 +812,7 @@ export default function Home() {
                 }
                 desc={
                   ar
-                    ? "اختر قالبًا احترافيًا، وخصّص الشعار والألوان في ثوانٍ. كل تصميم متوافق مع الجوال بالكامل."
+                    ? "اختار قالب احترافي، وخصّص الشعار والألوان في ثواني. وكل تصميم متوافق مع الموبايل بالكامل."
                     : "Pick a professional theme and customize your logo and colors in seconds. Fully mobile-ready."
                 }
               />
@@ -870,11 +870,11 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <Reveal>
               <SectionHeading
-                eyebrow={ar ? "كيف تبدأ" : "How it works"}
+                eyebrow={ar ? "إزاي تبدأ" : "How it works"}
                 title={
                   ar ? (
                     <>
-                      من التسجيل إلى أول طلب <span className="text-primary">في 4 خطوات</span>
+                      من التسجيل لأول طلب <span className="text-primary">في 4 خطوات</span>
                     </>
                   ) : (
                     <>
@@ -882,7 +882,7 @@ export default function Home() {
                     </>
                   )
                 }
-                desc={ar ? "لا تحتاج خبرة تقنية — فقط اتبع الخطوات وابدأ البيع." : "No technical experience needed — just follow the steps and start selling."}
+                desc={ar ? "مش محتاج خبرة تقنية — اتبع الخطوات وابدأ البيع." : "No technical experience needed — just follow the steps and start selling."}
               />
             </Reveal>
 
@@ -923,7 +923,7 @@ export default function Home() {
                     </>
                   )
                 }
-                desc={ar ? "ارفع متوسط قيمة الطلب وضمن ولاء عملائك — كل ذلك من لوحة تحكم واحدة." : "Increase average order value and build loyalty — all from one dashboard."}
+                desc={ar ? "ارفع متوسط قيمة الطلب واكسب ولاء عملائك — كل ده من لوحة تحكم واحدة." : "Increase average order value and build loyalty — all from one dashboard."}
               />
             </Reveal>
 
@@ -948,7 +948,7 @@ export default function Home() {
                   <h3 className="mt-4 font-bold text-foreground">{ar ? "وأكثر من ذلك بكثير" : "And much more"}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted">
                     {ar
-                      ? "اكتشف كل أدوات التسويق والنمو عند إنشاء حسابك — مجانًا لمدة 7 أيام."
+                      ? "اكتشف كل أدوات التسويق والنمو أول ما تعمل حسابك — ببلاش لمدة 7 أيام."
                       : "Discover every marketing and growth tool when you sign up — free for 7 days."}
                   </p>
                   <Link href="/register" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline">
@@ -979,7 +979,7 @@ export default function Home() {
                     </>
                   )
                 }
-                desc={ar ? "أكثر من 2,000 متجر يبيع كل يوم عبر المنصة. هذه بعض تجاربهم." : "Over 2,000 stores sell every day on the platform. Here are some of their stories."}
+                desc={ar ? "أكتر من 2,000 متجر بيبيع كل يوم عبر المنصة. دي بعض تجاربهم." : "Over 2,000 stores sell every day on the platform. Here are some of their stories."}
               />
             </Reveal>
 
@@ -1027,7 +1027,7 @@ export default function Home() {
                     </>
                   )
                 }
-                desc={ar ? "ابدأ بتجربة مجانية 7 أيام — بدون بطاقة بنكية، وبدون رسوم إعداد." : "Start with a 7-day free trial — no credit card, no setup fees."}
+                desc={ar ? "ابدأ بتجربة 7 أيام ببلاش — من غير بطاقة بنكية، ومن غير رسوم إعداد." : "Start with a 7-day free trial — no credit card, no setup fees."}
               />
             </Reveal>
 
@@ -1063,15 +1063,15 @@ export default function Home() {
                 <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-7 shadow-sm transition-all duration-300 hover:shadow-xl sm:p-8">
                   <div className="text-sm font-bold text-muted">{ar ? "الباقة الأساسية" : "Basic plan"}</div>
                   <div className="mt-3 flex items-end gap-1.5">
-                    <span className="text-4xl font-extrabold text-foreground">$0.04</span>
+                    <span className="text-4xl font-extrabold text-foreground">{ar ? "2 ج.م" : "EGP 2"}</span>
                     <span className="pb-1.5 text-sm text-muted">{ar ? "/ لكل طلب" : "/ per order"}</span>
                   </div>
                   <p className="mt-2 text-sm text-muted">
-                    {ar ? "ادفع فقط عند البيع — بدون اشتراك شهري." : "Pay only when you sell — no monthly subscription."}
+                    {ar ? "ادفع بس لما تبيع — من غير اشتراك شهري." : "Pay only when you sell — no monthly subscription."}
                   </p>
                   <ul className="mt-6 space-y-3 text-sm">
                     {(ar
-                      ? ["منتجات وطلبات غير محدودة", "زيارات غير محدودة", "رابط دفع إلكتروني مباشر", "متجرك يظل مفتوحًا دائمًا", "دعم سريع على مدار الساعة"]
+                      ? ["منتجات وطلبات من غير حدود", "زيارات من غير حدود", "لينك دفع إلكتروني مباشر", "متجرك شغال 24 ساعة", "دعم سريع على مدار اليوم"]
                       : ["Unlimited products and orders", "Unlimited visits", "Direct payment link", "Your store stays open always", "24/7 fast support"]
                     ).map((f) => (
                       <li key={f} className="flex items-start gap-2.5 text-muted">
@@ -1098,17 +1098,19 @@ export default function Home() {
                   </div>
                   <div className="text-sm font-bold text-primary">{ar ? "الباقة الاحترافية" : "Professional plan"}</div>
                   <div className="mt-3 flex items-end gap-1.5">
-                    <span className="text-4xl font-extrabold text-foreground">${billing === "monthly" ? 100 : 80}</span>
+                    <span className="text-4xl font-extrabold text-foreground">
+                      {billing === "monthly" ? "1,499" : "1,199"} {ar ? "ج.م" : "EGP"}
+                    </span>
                     <span className="pb-1.5 text-sm text-muted">{ar ? "/ شهريًا" : "/ month"}</span>
                   </div>
                   <p className="mt-2 text-sm text-muted">
                     {billing === "monthly"
-                      ? ar ? "بدون عمولة على مبيعاتك — كل الأرباح لك." : "No commission on sales — keep every profit."
-                      : ar ? "تُدفع سنويًا — وفّر 20% عن الدفع الشهري." : "Billed yearly — save 20% vs monthly."}
+                      ? ar ? "من غير عمولة على مبيعاتك — كل الأرباح ليك." : "No commission on sales — keep every profit."
+                      : ar ? "بتتدفع سنويًا — وفّر 20% عن الدفع الشهري." : "Billed yearly — save 20% vs monthly."}
                   </p>
                   <ul className="mt-6 space-y-3 text-sm">
                     {(ar
-                      ? ["كل مزايا الباقة الأساسية", "الدفع الإلكتروني أونلاين", "تكامل مع شركات الشحن", "استيراد/تصدير Excel", "كوبونات ونقاط ولاء", "دعم ذو أولوية"]
+                      ? ["كل مزايا الباقة الأساسية", "فوري وإنستاباي وفودافون كاش", "تكامل مع شركات الشحن", "استيراد وتصدير Excel", "كوبونات ونقاط ولاء", "دعم بأولوية"]
                       : ["Everything in Basic", "Online payments", "Shipping integrations", "Excel import/export", "Coupons & loyalty points", "Priority support"]
                     ).map((f) => (
                       <li key={f} className="flex items-start gap-2.5 text-muted">
@@ -1121,7 +1123,7 @@ export default function Home() {
                     href="/register"
                     className="shine mt-8 block rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-3 text-center text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-amber-500/35"
                   >
-                    {ar ? "ابدأ تجربتك المجانية" : "Start your free trial"}
+                    {ar ? "ابدأ تجربتك ببلاش" : "Start your free trial"}
                   </Link>
                 </div>
               </Reveal>
@@ -1130,7 +1132,7 @@ export default function Home() {
             <Reveal delay={200}>
               <p className="mt-8 text-center text-xs text-muted">
                 {ar
-                  ? "جميع الباقات تشمل تجربة مجانية 7 أيام · بدون رسوم إعداد · إلغاء في أي وقت"
+                  ? "كل الباقات فيها تجربة 7 أيام ببلاش · من غير رسوم إعداد · وإلغاء في أي وقت"
                   : "All plans include a 7-day free trial · No setup fees · Cancel anytime"}
               </p>
             </Reveal>
@@ -1144,7 +1146,7 @@ export default function Home() {
               <SectionHeading
                 eyebrow={ar ? "الأسئلة الشائعة" : "FAQ"}
                 title={ar ? "عندك سؤال؟ عندنا الجواب" : "Got questions? We have answers"}
-                desc={ar ? "أكثر الأسئلة التي تصلنا من التجار الجدد." : "The questions new merchants ask us most."}
+                desc={ar ? "أكتر الأسئلة اللي بتوصلنا من التجار الجدد." : "The questions new merchants ask us most."}
               />
             </Reveal>
 
@@ -1191,14 +1193,14 @@ export default function Home() {
             <Reveal>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5 text-xs font-bold text-white backdrop-blur">
                 <Sparkles className="h-3.5 w-3.5" />
-                {ar ? "ابدأ اليوم — مجانًا لمدة 7 أيام" : "Start today — free for 7 days"}
+                {ar ? "ابدأ النهاردة — ببلاش لمدة 7 أيام" : "Start today — free for 7 days"}
               </span>
               <h2 className="mt-6 text-balance text-3xl font-extrabold leading-tight text-white sm:text-4xl lg:text-5xl">
                 {ar ? "جاهز تفتح متجرك؟" : "Ready to open your store?"}
               </h2>
               <p className="mx-auto mt-4 max-w-xl leading-relaxed text-white/85">
                 {ar
-                  ? "انضم إلى آلاف التجار الذين يبيعون أونلاين كل يوم عبر Bee Panal. الإعداد لا يستغرق أكثر من 10 دقائق."
+                  ? "انضم لآلاف التجار اللي بيبيعوا أونلاين كل يوم عبر Bee Panal. الإعداد مش بياخد أكتر من 10 دقايق."
                   : "Join thousands of merchants selling online every day with Bee Panal. Setup takes under 10 minutes."}
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -1206,7 +1208,7 @@ export default function Home() {
                   href="/register"
                   className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-extrabold text-amber-700 shadow-xl transition-all hover:-translate-y-0.5 hover:shadow-2xl sm:w-auto"
                 >
-                  {ar ? "ابدأ تجربتك المجانية" : "Start your free trial"}
+                  {ar ? "ابدأ تجربتك ببلاش" : "Start your free trial"}
                   <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </Link>
                 <Link
@@ -1230,7 +1232,7 @@ export default function Home() {
               <Logo size="md" light />
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-zinc-500">
                 {ar
-                  ? "منصة متكاملة تتيح لك إطلاق متجرك الإلكتروني وإدارته بسهولة — بدون مبرمج ولا سيرفر."
+                  ? "منصة متكاملة تخليك تطلق متجرك الأونلاين وتديره بسهولة — من غير مبرمج ولا سيرفر."
                   : "An all-in-one platform to launch and manage your online store — no developer, no server."}
               </p>
               <div className="mt-5 flex items-center gap-2">
@@ -1264,7 +1266,7 @@ export default function Home() {
                   { href: "#themes", label: ar ? "التصاميم" : "Themes" },
                   { href: "#growth", label: ar ? "أدوات النمو" : "Growth tools" },
                   { href: "#pricing", label: ar ? "الأسعار" : "Pricing" },
-                  { href: "#faq", label: ar ? "الأسئلة الشائعة" : "FAQ" },
+                  { href: "#faq", label: ar ? "الأسئلة" : "FAQ" },
                 ].map((l) => (
                   <li key={l.href}>
                     <a href={l.href} className="transition-colors hover:text-white">
@@ -1292,6 +1294,10 @@ export default function Home() {
                   <Mail className="h-4 w-4 text-primary" />
                   <a href="mailto:hello@beepanal.store" className="transition-colors hover:text-white">hello@beepanal.store</a>
                 </li>
+                <li className="flex items-center gap-2">
+                  <span aria-hidden>🇪🇬</span>
+                  {ar ? "القاهرة، مصر" : "Cairo, Egypt"}
+                </li>
               </ul>
               <div className="mt-5">
                 <div className="text-xs font-semibold text-zinc-500">{ar ? "طرق الدفع" : "Payments"}</div>
@@ -1308,13 +1314,13 @@ export default function Home() {
 
           <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-zinc-800 pt-6 text-xs text-zinc-500 sm:flex-row">
             <span>
-              © 2026 Bee Panal. {ar ? "جميع الحقوق محفوظة." : "All rights reserved."}
+              © 2026 Bee Panal. {ar ? "كل الحقوق محفوظة." : "All rights reserved."}
             </span>
             <span className="flex items-center gap-3">
               <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-[10px] text-zinc-400">
                 v{VERSION}
               </span>
-              <span>{ar ? "صُنع بـ ❤️ في العراق" : "Made with ❤️ in Iraq"}</span>
+              <span>{ar ? "صُنع بـ ❤️ في مصر" : "Made with ❤️ in Egypt"}</span>
             </span>
           </div>
         </div>

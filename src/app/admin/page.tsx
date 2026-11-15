@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowUpRight, LogOut, Package, ShieldCheck, ShoppingBag, Store, Users, Wallet } from "lucide-react";
 import { VERSION } from "@/lib/version";
+import { formatDate, formatMoney, formatNumber } from "@/lib/format";
+import { cardClass } from "@/lib/ui";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -30,68 +34,122 @@ export default function AdminDashboard() {
     router.refresh();
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">جاري التحميل...</div>;
+  if (loading)
+    return <div className="flex min-h-screen items-center justify-center bg-surface text-sm text-muted">بنحمّل...</div>;
   if (!data) return null;
 
+  const cards = [
+    { label: "المستخدمون", value: formatNumber(data.stats.users), icon: Users, tone: "text-sky-600 dark:text-sky-400 bg-sky-500/10" },
+    { label: "المتاجر", value: formatNumber(data.stats.stores), icon: Store, tone: "text-amber-600 dark:text-amber-400 bg-amber-500/10" },
+    { label: "المنتجات", value: formatNumber(data.stats.products), icon: Package, tone: "text-violet-600 dark:text-violet-400 bg-violet-500/10" },
+    { label: "الطلبات", value: formatNumber(data.stats.orders), icon: ShoppingBag, tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10" },
+    { label: "الإيرادات", value: formatMoney(data.stats.revenue, "EGP"), icon: Wallet, tone: "text-rose-600 dark:text-rose-400 bg-rose-500/10" },
+  ];
+
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="bg-foreground text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">A</span>
-            <span className="font-bold">Admin Panel — Bee Panal</span>
+    <div className="min-h-screen bg-surface" dir="rtl">
+      <header className="border-b border-border bg-card/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-foreground text-sm font-extrabold text-background">
+              A
+            </span>
+            <div>
+              <div className="text-sm font-extrabold text-foreground">Admin Panel</div>
+              <div className="text-[10px] text-muted">Bee Panal · لوحة المطور</div>
+            </div>
           </div>
-          <button onClick={handleLogout} className="text-sm text-white/80 hover:text-white">تسجيل خروج</button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="hidden items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:text-foreground sm:inline-flex"
+            >
+              الموقع
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              خروج
+            </button>
+          </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-foreground mb-6">لوحة تحكم المبرمج</h1>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          {[
-            { label: "المستخدمون", value: data.stats.users },
-            { label: "المتاجر", value: data.stats.stores },
-            { label: "المنتجات", value: data.stats.products },
-            { label: "الطلبات", value: data.stats.orders },
-            { label: "الإيرادات", value: data.stats.revenue.toLocaleString() },
-          ].map((s, i) => (
-            <div key={i} className="bg-white border border-border rounded-2xl p-5">
-              <div className="text-sm text-muted">{s.label}</div>
-              <div className="text-2xl font-bold text-foreground mt-2">{s.value}</div>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6 flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          <h1 className="text-2xl font-extrabold text-foreground">نظرة عامة على المنصة</h1>
+        </div>
+
+        <div className="mb-8 grid grid-cols-2 gap-3.5 lg:grid-cols-5">
+          {cards.map((s) => (
+            <div key={s.label} className={`${cardClass} p-5`}>
+              <span className={`grid h-9 w-9 place-items-center rounded-xl ${s.tone}`}>
+                <s.icon className="h-4 w-4" />
+              </span>
+              <div className="mt-3 text-xl font-extrabold tracking-tight text-foreground">{s.value}</div>
+              <div className="mt-0.5 text-xs text-muted">{s.label}</div>
             </div>
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-border rounded-2xl p-6">
-            <h2 className="font-bold text-foreground mb-4">آخر المستخدمين</h2>
-            <ul className="divide-y divide-border text-sm">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className={`${cardClass} overflow-hidden`}>
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="font-extrabold text-foreground">آخر المستخدمين</h2>
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                {formatNumber(data.recentUsers.length)}
+              </span>
+            </div>
+            <ul className="divide-y divide-border">
               {data.recentUsers.map((u: any) => (
-                <li key={u.id} className="py-2 flex justify-between">
-                  <span className="font-medium">{u.name}</span>
-                  <span className="text-muted">{u.email}</span>
+                <li key={u.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-[11px] font-bold text-white">
+                      {u.name.charAt(0)}
+                    </span>
+                    <div>
+                      <div className="text-sm font-bold text-foreground">{u.name}</div>
+                      <div className="text-[10px] text-muted" dir="ltr">{u.email}</div>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted">{formatDate(u.createdAt)}</span>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="bg-white border border-border rounded-2xl p-6">
-            <h2 className="font-bold text-foreground mb-4">آخر الطلبات</h2>
-            <ul className="divide-y divide-border text-sm">
+
+          <div className={`${cardClass} overflow-hidden`}>
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="font-extrabold text-foreground">آخر الطلبات</h2>
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                {formatNumber(data.recentOrders.length)}
+              </span>
+            </div>
+            <ul className="divide-y divide-border">
               {data.recentOrders.map((o: any) => (
-                <li key={o.id} className="py-2 flex justify-between">
-                  <span>{o.customerName} — {o.store.name}</span>
-                  <span className="font-medium text-primary">{o.total.toLocaleString()}</span>
+                <li key={o.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-bold text-foreground">{o.customerName}</div>
+                    <div className="truncate text-[10px] text-muted">{o.store.name}</div>
+                  </div>
+                  <div className="text-end">
+                    <div className="text-sm font-extrabold text-primary">
+                      {formatMoney(o.total, o.store.currency || "EGP")}
+                    </div>
+                    <div className="text-[10px] text-muted">{formatDate(o.createdAt)}</div>
+                  </div>
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 text-xs text-muted text-center">
-          Bee Panal Admin · v{VERSION}
-        </div>
+        <div className="mt-8 text-center text-xs text-muted">Bee Panal Admin · v{VERSION}</div>
       </main>
     </div>
   );
 }
-

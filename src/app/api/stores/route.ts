@@ -39,7 +39,14 @@ export async function POST(req: Request) {
     }
 
     const store = await prisma.store.create({
-      data: { name, slug, description: description || "", userId: session.userId },
+      data: {
+        name,
+        slug,
+        description: description || "",
+        userId: session.userId,
+        currency: "EGP",
+        themeColor: "#d97706",
+      },
     });
     return NextResponse.json({ store });
   } catch (e) {

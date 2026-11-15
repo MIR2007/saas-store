@@ -25,8 +25,8 @@ model Store {
   slug        String     @unique
   description String     @default("")
   logo        String     @default("")
-  themeColor  String     @default("#2563eb")
-  currency    String     @default("IQD")
+  themeColor  String     @default("#d97706")
+  currency    String     @default("EGP")
   active      Boolean    @default(true)
   createdAt   DateTime   @default(now())
   categories  Category[]

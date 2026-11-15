@@ -3,9 +3,11 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { ArrowUpRight, ShieldCheck, Sparkles } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 import LanguageToggle from "@/components/LanguageToggle";
 import Logo from "@/components/Logo";
+import { inputClass, labelClass } from "@/lib/ui";
 
 function LoginForm() {
   const router = useRouter();
@@ -30,63 +32,99 @@ function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "فشل تسجيل الدخول");
+        setError(data.error || "مش قادرين نسجّل دخولك");
         return;
       }
       router.push(next);
       router.refresh();
     } catch {
-      setError("خطأ في الاتصال");
+      setError("مشكلة في الاتصال، جرّب تاني.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface px-4">
-      <div className="w-full max-w-md bg-white border border-border rounded-2xl p-8 shadow-sm">
-        <div className="flex justify-end mb-4"><LanguageToggle /></div>
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-3 flex justify-center"><Logo size="lg" href="#" /></div>
-          <h1 className="text-2xl font-bold text-foreground">{t.auth.login}</h1>
-          <p className="text-sm text-muted mt-1">{t.auth.welcome}</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t.auth.email}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t.auth.password}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
-            />
-          </div>
-          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary text-white font-medium py-2.5 rounded-lg hover:bg-primary-dark transition disabled:opacity-60"
-          >
-            {loading ? t.common.loading : t.auth.submit}
-          </button>
-        </form>
-        <p className="text-sm text-muted text-center mt-6">
-          {t.auth.noAccount}{" "}
-          <Link href="/register" className="text-primary font-medium hover:underline">
-            {t.auth.signupFree}
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface px-4 py-10">
+      <div className="absolute -end-24 -top-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl" />
+      <div className="absolute -bottom-32 -start-24 h-80 w-80 rounded-full bg-orange-400/15 blur-3xl" />
+      <div className="bg-grid grid-mask absolute inset-0 opacity-60" />
+
+      <div className="relative w-full max-w-md">
+        <div className="mb-4 flex items-center justify-between">
+          <Link href="/" className="text-xs font-bold text-muted hover:text-foreground">
+            ← رجوع للموقع
           </Link>
-        </p>
+          <LanguageToggle />
+        </div>
+
+        <div className="rounded-3xl border border-border bg-card/95 p-7 shadow-2xl shadow-black/5 backdrop-blur sm:p-8">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex justify-center">
+              <Logo size="lg" href="#" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-foreground">{t.auth.login}</h1>
+            <p className="mt-1 text-sm text-muted">{t.auth.welcome}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+            <div>
+              <label className={labelClass}>{t.auth.email}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                className={inputClass}
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>{t.auth.password}</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className={inputClass}
+                dir="ltr"
+              />
+            </div>
+            {error && (
+              <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-amber-500/35 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? t.common.loading : t.auth.submit}
+              {!loading && <ArrowUpRight className="h-4 w-4" />}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-muted">
+            {t.auth.noAccount}{" "}
+            <Link href="/register" className="font-bold text-primary hover:underline">
+              {t.auth.signupFree}
+            </Link>
+          </p>
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+            بياناتك محمية
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            7 أيام تجربة مجانية
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -94,7 +132,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">جاري التحميل...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-surface text-sm text-muted">بنحمّل...</div>}>
       <LoginForm />
     </Suspense>
   );

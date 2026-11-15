@@ -14,7 +14,7 @@ export async function GET() {
     prisma.product.count(),
     prisma.order.count(),
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, name: true, email: true, createdAt: true } }),
-    prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { store: { select: { name: true, slug: true } } } }),
+    prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { store: { select: { name: true, slug: true, currency: true } } } }),
   ]);
 
   const revenue = await prisma.order.aggregate({ _sum: { total: true } });

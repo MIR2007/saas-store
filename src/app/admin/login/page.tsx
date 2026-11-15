@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Lock, ShieldCheck } from "lucide-react";
+import { inputClass, labelClass } from "@/lib/ui";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -20,42 +23,71 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) {
-        setError("كلمة مرور غير صحيحة");
+        setError("كلمة المرور غلط، جرّب تاني.");
         return;
       }
       router.push("/admin");
       router.refresh();
     } catch {
-      setError("خطأ في الاتصال");
+      setError("مشكلة في الاتصال، جرّب تاني.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface px-4">
-      <div className="w-full max-w-md bg-white border border-border rounded-2xl p-8 shadow-sm">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-foreground text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3">A</div>
-          <h1 className="text-2xl font-bold text-foreground">لوحة تحكم المبرمج</h1>
-          <p className="text-sm text-muted mt-1">Admin Access</p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface px-4">
+      <div className="absolute -end-24 -top-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl" />
+      <div className="absolute -bottom-32 -start-24 h-80 w-80 rounded-full bg-orange-400/15 blur-3xl" />
+      <div className="bg-grid grid-mask absolute inset-0 opacity-60" />
+
+      <div className="relative w-full max-w-sm">
+        <div className="mb-4 text-center">
+          <Link href="/" className="text-xs font-bold text-muted hover:text-foreground">
+            ← رجوع للموقع
+          </Link>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">كلمة المرور</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
-            />
+        <div className="rounded-3xl border border-border bg-card/95 p-7 shadow-2xl shadow-black/5 backdrop-blur">
+          <div className="text-center">
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-foreground text-xl font-extrabold text-background">
+              A
+            </span>
+            <h1 className="mt-3 text-xl font-extrabold text-foreground">لوحة تحكم المطور</h1>
+            <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+              دخول محمي لصاحب المنصة
+            </p>
           </div>
-          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>}
-          <button type="submit" disabled={loading} className="w-full bg-foreground text-white font-medium py-2.5 rounded-lg hover:opacity-90 transition disabled:opacity-60">
-            {loading ? "..." : "دخول"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <div>
+              <label className={labelClass}>كلمة المرور</label>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className={`${inputClass} ps-10`}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            {error && (
+              <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-foreground py-3 text-sm font-extrabold text-background transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              {loading ? "بندخل..." : "دخول"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

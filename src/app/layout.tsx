@@ -11,8 +11,19 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "Bee Panal | منصة إنشاء المتاجر الإلكترونية",
-  description: "أنشئ متجرك الإلكتروني بنفسك في أقل من 10 دقايق، بدون خبرة برمجية. منصة Bee Panal.",
+  metadataBase: new URL("https://beepanal.store"),
+  title: "Bee Panal | منصة المتاجر الإلكترونية في مصر",
+  description:
+    "اعمل متجرك الأونلاين في دقايق، من غير مبرمج. منتجات، طلبات، دفع وشحن — بالجنيه المصري. جرّب Bee Panal 7 أيام ببلاش.",
+  keywords: ["متجر إلكتروني", "إنشاء متجر", "تجارة إلكترونية", "مصر", "Bee Panal"],
+  openGraph: {
+    title: "Bee Panal | منصة المتاجر الإلكترونية في مصر",
+    description: "اعمل متجرك الأونلاين في دقايق، من غير مبرمج — جرّب 7 أيام ببلاش.",
+    url: "https://beepanal.store",
+    siteName: "Bee Panal",
+    locale: "ar_EG",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -32,34 +32,34 @@ export default function HeroMockup() {
   ];
 
   const stats = [
-    { label: ar ? "المبيعات" : "Sales", value: "48,250", suffix: ar ? "ر.س" : "SAR", up: "+12%" },
+    { label: ar ? "المبيعات" : "Sales", value: "48,250", suffix: ar ? "ج.م" : "EGP", up: "+12%" },
     { label: ar ? "الطلبات" : "Orders", value: "326", suffix: "", up: "+8%" },
     { label: ar ? "العملاء" : "Customers", value: "1,204", suffix: "", up: "+23%" },
   ];
 
   const orders = [
     {
-      name: ar ? "أحمد العبيدي" : "Ahmed Al-Obaidi",
+      name: ar ? "أحمد عبد الرحمن" : "Ahmed Abdel Rahman",
       product: ar ? "سماعات لاسلكية" : "Wireless Headphones",
-      amount: ar ? "3,200 ر.س" : "SAR 3,200",
+      amount: ar ? "3,200 ج.م" : "EGP 3,200",
       status: ar ? "جديد" : "New",
       color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
       icon: Headphones,
       tile: "from-amber-400 to-orange-500",
     },
     {
-      name: ar ? "سارة الحسيني" : "Sara Al-Husseini",
+      name: ar ? "سارة المصري" : "Sara El-Masry",
       product: ar ? "ساعة ذكية" : "Smart Watch",
-      amount: ar ? "1,850 ر.س" : "SAR 1,850",
+      amount: ar ? "1,850 ج.م" : "EGP 1,850",
       status: ar ? "قيد الشحن" : "Shipping",
       color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
       icon: Watch,
       tile: "from-sky-400 to-blue-500",
     },
     {
-      name: ar ? "محمد الكناني" : "Mohammed Al-Kinani",
+      name: ar ? "محمد الشربيني" : "Mohamed El-Sherbiny",
       product: ar ? "حذاء رياضي" : "Running Shoes",
-      amount: ar ? "980 ر.س" : "SAR 980",
+      amount: ar ? "980 ج.م" : "EGP 980",
       status: ar ? "مكتمل" : "Completed",
       color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       icon: Footprints,
@@ -129,7 +129,7 @@ export default function HeroMockup() {
                   {ar ? "نظرة عامة" : "Overview"}
                 </div>
                 <div className="text-[9px] text-muted">
-                  {ar ? "مرحباً محمد، إليك ملخص اليوم" : "Welcome back, here is today"}
+                  {ar ? "مرحباً محمد، ده ملخص يومك" : "Welcome back, here is today"}
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
@@ -228,7 +228,7 @@ export default function HeroMockup() {
         <div>
           <div className="text-[10px] font-bold text-foreground">{ar ? "طلب جديد 🎉" : "New order 🎉"}</div>
           <div className="text-[10px] text-muted">
-            {ar ? "الآن · +3,200 ر.س" : "Just now · +SAR 3,200"}
+            {ar ? "دلوقتي · +3,200 ج.م" : "Just now · +EGP 3,200"}
           </div>
         </div>
       </div>
