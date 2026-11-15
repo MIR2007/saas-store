@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ImagePlus, Package, Plus, Tags, Wallet } from "lucide-react";
+import { ImagePlus, Package, Plus, Tags, Wallet, Upload } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { currencySymbol, formatMoney } from "@/lib/format";
 import { cardClass, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
@@ -25,6 +25,7 @@ export default function NewProductPage() {
   const [active, setActive] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [newCat, setNewCat] = useState("");
 
   useEffect(() => {
@@ -49,6 +50,28 @@ export default function NewProductPage() {
       setCategories((c) => [...c, data.category]);
       setCategoryId(data.category.id);
       setNewCat("");
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setError(data.error || "فشل في رفع الصورة");
+        return;
+      }
+      setImageUrl(data.url);
+      e.target.value = "";
+    } catch {
+      setError("مشكلة في الاتصال، جرّب تاني.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -221,15 +244,30 @@ export default function NewProductPage() {
                 </div>
               )}
             </div>
-            <label className={`${labelClass} mt-4`}>رابط الصورة</label>
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://…"
-              className={inputClass}
-              dir="ltr"
-            />
-            <p className="mt-1.5 text-[11px] text-muted">حدد رابط صورة مباشر (jpg / png / webp).</p>
+            <div className="mt-4">
+              <label className={labelClass}>رفع صورة من جهازك</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleImageUpload}
+                disabled={uploading}
+                className={`block w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 ${uploading ? "opacity-70 cursor-not-allowed" : ""}`}
+              />
+              {uploading && <p className="mt-1.5 text-[11px] text-muted">جارٍ رفع الصورة…</p>}
+            </div>
+            <div className="mt-3">
+              <label className={labelClass}>أو أضف رابط صورة مباشر (اختياري)</label>
+              <input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://…"
+                className={inputClass}
+                dir="ltr"
+              />
+            </div>
+            <p className="mt-1.5 text-[11px] text-muted">
+              جودة الصورة يفضل تكون مربعة (1:1) وأحجام أقل من 5 ميجابايت.
+            </p>
           </section>
 
           <section className={`${cardClass} p-6`}>

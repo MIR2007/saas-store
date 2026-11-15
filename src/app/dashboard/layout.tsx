@@ -6,8 +6,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await getSession();
   if (!session) redirect("/login");
 
+  // فقط التاجر أو الأدمن يقدر يدخل لوحة التحكم
+  if (session.role !== "MERCHANT" && session.role !== "ADMIN") {
+    redirect("/");
+  }
+
   return (
-    <DashboardShell user={{ name: session.name, email: session.email }}>
+    <DashboardShell user={{ name: session.name, email: session.email, role: session.role }}>
       {children}
     </DashboardShell>
   );

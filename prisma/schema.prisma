@@ -13,8 +13,16 @@ model User {
   email        String   @unique
   passwordHash String
   name         String
+  phone        String   @default("")
+  role         UserRole @default(CUSTOMER)
   createdAt    DateTime @default(now())
   stores       Store[]
+}
+
+enum UserRole {
+  CUSTOMER
+  MERCHANT
+  ADMIN
 }
 
 model Store {
@@ -26,7 +34,9 @@ model Store {
   description String     @default("")
   logo        String     @default("")
   themeColor  String     @default("#d97706")
+  theme       String     @default("modern")
   currency    String     @default("EGP")
+  walletBalance Float    @default(0)
   active      Boolean    @default(true)
   createdAt   DateTime   @default(now())
   categories  Category[]

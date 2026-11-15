@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"CUSTOMER" | "MERCHANT">("CUSTOMER");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,14 +27,14 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "مش قادرين نعمل حسابك");
         return;
       }
-      router.push("/dashboard");
+      router.push(role === "MERCHANT" ? "/dashboard" : "/");
       router.refresh();
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");
@@ -110,6 +111,38 @@ export default function RegisterPage() {
                 dir="ltr"
               />
             </div>
+
+            <div>
+              <label className={labelClass}>نوع الحساب</label>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRole("CUSTOMER")}
+                  className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                    role === "CUSTOMER"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted hover:bg-surface"
+                  }`}
+                >
+                  عميل (يشتري)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("MERCHANT")}
+                  className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                    role === "MERCHANT"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted hover:bg-surface"
+                  }`}
+                >
+                  تاجر (يبيع)
+                </button>
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted">
+                التاجر يقدر يفتح متجر ويضيف منتجات ويدير طلباته من لوحة التحكم.
+              </p>
+            </div>
+
             {error && (
               <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
                 {error}

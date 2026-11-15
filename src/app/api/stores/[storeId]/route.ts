@@ -12,6 +12,7 @@ const updateSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().optional(),
   themeColor: z.string().optional(),
+  theme: z.string().optional(),
   currency: z.string().optional(),
   active: z.boolean().optional(),
   logo: z.string().optional(),

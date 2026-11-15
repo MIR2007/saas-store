@@ -27,10 +27,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
     }
 
-    const token = await createSessionToken({ userId: user.id, email: user.email, name: user.name });
+    const token = await createSessionToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
     await setSessionCookie(token);
 
-    return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email } });
+    return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "خطأ في الخادم" }, { status: 500 });

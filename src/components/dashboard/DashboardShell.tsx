@@ -12,7 +12,9 @@ import {
   PlusCircle,
   Sparkles,
   Store,
+  Wallet,
   X,
+  Palette,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -22,12 +24,18 @@ const nav = [
   { href: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/stores", label: "متاجري", icon: Store },
   { href: "/dashboard/stores/new", label: "متجر جديد", icon: PlusCircle },
+  { href: "/dashboard/stores/[storeId]/wallet", label: "محفظتك", icon: Wallet },
+  { href: "/dashboard/stores/[storeId]/design", label: "تصميم المتجر", icon: Palette },
 ];
 
 function isActive(pathname: string, href: string, exact?: boolean) {
   if (exact) return pathname === href;
   if (href === "/dashboard/stores") {
     return pathname === href || (pathname.startsWith("/dashboard/stores/") && pathname !== "/dashboard/stores/new");
+  }
+  if (href.includes("[storeId]")) {
+    const base = href.replace("/[storeId]", "");
+    return pathname.startsWith(base + "/") || pathname === base;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -36,7 +44,7 @@ export default function DashboardShell({
   user,
   children,
 }: {
-  user: { name: string; email: string };
+  user: { name: string; email: string; role?: string };
   children: ReactNode;
 }) {
   const pathname = usePathname();
