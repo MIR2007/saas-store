@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CheckCircle2, MapPin, Phone, ShoppingBag, Truck } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { getStoreBase } from "@/lib/store-url";
+import { getStoreTheme } from "@/lib/themes";
 
 export default async function OrderConfirmationPage(props: PageProps<"/[slug]/order/[orderId]">) {
   const { slug, orderId } = await props.params;
@@ -12,7 +13,8 @@ export default async function OrderConfirmationPage(props: PageProps<"/[slug]/or
   const order = await prisma.order.findFirst({ where: { id: orderId, storeId: store.id }, include: { items: true } });
   if (!order) notFound();
 
-  const color = store.themeColor || "#d97706";
+  const theme = getStoreTheme(store.theme);
+  const color = store.themeColor || theme.primary;
   const base = await getStoreBase(store.slug, store.customDomain);
   const shortId = `#${order.id.slice(-8).toUpperCase()}`;
   const count = order.items.reduce((s, it) => s + it.quantity, 0);
@@ -114,7 +116,7 @@ export default async function OrderConfirmationPage(props: PageProps<"/[slug]/or
           <div className="mt-5 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
             <Link
               href={`${base}` || "/"}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-colors hover:bg-primary-dark sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-black/10 transition-colors hover:bg-primary-dark sm:w-auto"
             >
               كمّل تسوق
             </Link>

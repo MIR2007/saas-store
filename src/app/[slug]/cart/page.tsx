@@ -65,7 +65,7 @@ export default function CartPage() {
           </p>
           <Link
             href={`${base}` || "/"}
-            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-colors hover:bg-primary-dark"
+            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-black/10 transition-colors hover:bg-primary-dark"
           >
             ارجع للمتجر
           </Link>
@@ -161,7 +161,7 @@ export default function CartPage() {
             </div>
             <button
               onClick={() => router.push(`${base}/checkout`)}
-              className="mt-5 w-full rounded-xl bg-primary py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-colors hover:bg-primary-dark"
+              className="mt-5 w-full rounded-xl bg-primary py-3 text-sm font-extrabold text-white shadow-md shadow-black/10 transition-colors hover:bg-primary-dark"
             >
               إتمام الطلب
             </button>

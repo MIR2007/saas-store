@@ -251,7 +251,7 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-4 w-full rounded-xl bg-primary py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-4 w-full rounded-xl bg-primary py-3 text-sm font-extrabold text-white shadow-md shadow-black/10 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "بنأكد الطلب..." : "تأكيد الطلب"}
               </button>

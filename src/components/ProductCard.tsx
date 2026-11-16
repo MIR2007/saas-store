@@ -46,7 +46,7 @@ export default function ProductCard({
   }
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5">
+    <div className="group overflow-hidden rounded-[var(--store-radius,1rem)] border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5">
       <Link href={`${prefix}/products/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-surface">
           {images[0] ? (
@@ -86,7 +86,7 @@ export default function ProductCard({
         <button
           onClick={addToCart}
           disabled={product.stock <= 0}
-          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-white shadow-sm shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[var(--store-btn-radius,0.75rem)] bg-primary py-2.5 text-xs font-bold text-white shadow-sm shadow-black/10 transition-all hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
           {product.stock <= 0 ? "نفذ المخزون" : "ضيف للسلة"}

@@ -5,6 +5,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import CartLink from "@/components/storefront/CartLink";
 import { formatMoney } from "@/lib/format";
 import { getStoreBase } from "@/lib/store-url";
+import { getStoreTheme } from "@/lib/themes";
 import { ChevronLeft, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 
 export default async function ProductDetailPage(props: PageProps<"/[slug]/products/[productId]">) {
@@ -20,7 +21,8 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
   let images: string[] = [];
   try { images = JSON.parse(product.images || "[]"); } catch { images = []; }
 
-  const color = store.themeColor || "#d97706";
+  const theme = getStoreTheme(store.theme);
+  const color = store.themeColor || theme.primary;
   const base = await getStoreBase(store.slug, store.customDomain);
   const onSale = product.comparePrice && product.comparePrice > product.price;
   const discount = onSale ? Math.round((1 - product.price / product.comparePrice!) * 100) : 0;
@@ -31,7 +33,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href={`${base}` || "/"} className="flex items-center gap-2.5">
             <span
-              className="grid h-9 w-9 place-items-center rounded-xl text-sm font-extrabold text-white"
+              className="grid h-9 w-9 place-items-center rounded-[var(--store-radius,1rem)] text-sm font-extrabold text-white"
               style={{ backgroundColor: color }}
             >
               {store.name.charAt(0)}

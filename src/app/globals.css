@@ -91,6 +91,22 @@ body {
   background-size: 22px 22px;
 }
 
+/* ---------- Store themes ---------- */
+.store-theme button.bg-primary,
+.store-theme a.bg-primary {
+  border-radius: var(--store-btn-radius, 0.75rem);
+}
+.store-pattern-dots {
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.store-pattern-grid {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
 /* ---------- Animations ---------- */
 @keyframes float {
   0%, 100% { transform: translateY(0); }

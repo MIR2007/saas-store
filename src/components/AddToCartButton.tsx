@@ -52,7 +52,7 @@ export default function AddToCartButton({
       <button
         onClick={addToCart}
         disabled={product.stock <= 0}
-        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-black/10 transition-all hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
       >
         <ShoppingCart className="h-4 w-4" />
         {product.stock <= 0 ? "نفذ المخزون" : "ضيف للسلة"}

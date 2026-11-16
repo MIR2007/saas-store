@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ShieldCheck, ShoppingBag, Sparkles, Truck } from "lucide-react";
 import { formatNumber } from "@/lib/format";
 import { getStoreBase } from "@/lib/store-url";
+import { getStoreTheme } from "@/lib/themes";
 
 export default async function StoreHome(props: PageProps<"/[slug]">) {
   const { slug } = await props.params;
@@ -21,7 +22,8 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
     include: { category: true },
   });
   const categories = await prisma.category.findMany({ where: { storeId: store.id } });
-  const color = store.themeColor || "#d97706";
+  const theme = getStoreTheme(store.theme);
+  const color = store.themeColor || theme.primary;
   const base = await getStoreBase(store.slug, store.customDomain);
 
   return (
@@ -32,7 +34,7 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href={`${base}` || "/"} className="flex items-center gap-2.5">
             <span
-              className="grid h-10 w-10 place-items-center rounded-xl text-base font-extrabold text-white shadow-sm"
+              className="grid h-10 w-10 place-items-center rounded-[var(--store-radius,1rem)] text-base font-extrabold text-white shadow-sm"
               style={{ backgroundColor: color }}
             >
               {store.name.charAt(0)}
@@ -45,6 +47,12 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border bg-card">
+        {theme.pattern !== "none" && (
+          <div
+            className={`pointer-events-none absolute inset-0 opacity-50 store-pattern-${theme.pattern}`}
+            aria-hidden="true"
+          />
+        )}
         <div
           className="absolute -end-24 -top-28 h-72 w-72 rounded-full blur-3xl"
           style={{ backgroundColor: `${color}22` }}

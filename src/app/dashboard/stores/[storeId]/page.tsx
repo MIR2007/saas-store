@@ -18,6 +18,7 @@ import StatusBadge from "@/components/dashboard/StatusBadge";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { primaryBtn, secondaryBtn, cardClass } from "@/lib/ui";
 import { storePublicUrl } from "@/lib/domains";
+import { getStoreTheme } from "@/lib/themes";
 
 export default async function StoreDetailPage(props: PageProps<"/dashboard/stores/[storeId]">) {
   const session = await getSession();
@@ -123,6 +124,9 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
           <div className="flex flex-wrap gap-2 text-[11px]">
             <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1.5 font-bold backdrop-blur">
               {store.currency}
+            </span>
+            <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1.5 font-bold backdrop-blur">
+              ثيم {getStoreTheme(store.theme).name}
             </span>
             <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1.5 font-bold backdrop-blur">
               اللون {store.themeColor}
