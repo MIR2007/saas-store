@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Palette, Store, Eye, ArrowRight } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { cardClass, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
+import { storePublicUrl } from "@/lib/domains";
 
 const THEMES = [
   { id: "modern", name: "حديث", desc: "ثيم عصري نظيف يناسب جميع المجالات", color: "#d97706" },
@@ -164,7 +165,7 @@ export default function DesignPage() {
           <section className={`${cardClass} p-6`}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-extrabold text-foreground">معاينة واجهة المتجر</h2>
-              <a href={`/${store.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+              <a href={storePublicUrl(store.slug, store.customDomain)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
                 افتح المتجر <ArrowRight className="h-3 w-3" />
               </a>
             </div>

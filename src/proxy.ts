@@ -1,15 +1,66 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
+import { extractSubdomain, isPlatformHost, normalizeHost } from "@/lib/domains";
 
 const COOKIE_NAME = "eo_session";
 const SECRET = new TextEncoder().encode(
   process.env.AUTH_SECRET || "dev-secret-change-me-in-production-please"
 );
 
+/** Resolve a custom domain to a store slug. */
+async function slugForCustomDomain(host: string) {
+  if (!host.includes(".") || host.endsWith(".vercel.app") || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    return null;
+  }
+  try {
+    const store = await prisma.store.findFirst({
+      where: { customDomain: host },
+      select: { slug: true },
+    });
+    return store?.slug || null;
+  } catch (error) {
+    console.error("domain lookup failed", error);
+    return null;
+  }
+}
+
+/** Rewrite a storefront request on the store's own host to the /[slug] routes. */
+function rewriteToStore(request: NextRequest, slug: string) {
+  const pathname = request.nextUrl.pathname;
+
+  // Canonicalise legacy links that still include the store slug.
+  if (pathname === `/${slug}` || pathname.startsWith(`/${slug}/`)) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.slice(slug.length + 1) || "/";
+    return NextResponse.redirect(url, 308);
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = `/${slug}${pathname === "/" ? "" : pathname}`;
+  return NextResponse.rewrite(url);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = normalizeHost(request.headers.get("host"));
 
+  // ---- Own-domain routing: every store gets {slug}.beepanal.store + optional custom domain
+  const subdomain = extractSubdomain(host);
+  if (subdomain) {
+    return rewriteToStore(request, subdomain);
+  }
+
+  const platform = isPlatformHost(host);
+  if (!platform) {
+    const slug = await slugForCustomDomain(host);
+    if (slug) return rewriteToStore(request, slug);
+    // Unknown host: let the platform 404 naturally.
+    return NextResponse.next();
+  }
+
+  // ---- Platform authentication
   if (pathname.startsWith("/dashboard")) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
     if (!token) {
@@ -56,5 +107,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register", "/admin/:path*"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|logo.svg|.*\\..*).*)",
+  ],
 };

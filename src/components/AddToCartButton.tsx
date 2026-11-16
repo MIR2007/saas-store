@@ -4,9 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
 
-export default function AddToCartButton({ product, storeSlug }: { product: any; storeSlug: string }) {
+export default function AddToCartButton({
+  product,
+  storeSlug,
+  base,
+}: {
+  product: any;
+  storeSlug: string;
+  base?: string;
+}) {
   const router = useRouter();
   const [qty, setQty] = useState(1);
+  const prefix = base ?? `/${storeSlug}`;
 
   function addToCart() {
     const key = `cart:${storeSlug}`;
@@ -16,7 +25,7 @@ export default function AddToCartButton({ product, storeSlug }: { product: any; 
     if (idx >= 0) cart[idx].quantity += qty;
     else cart.push({ productId: product.id, name: product.name, price: product.price, quantity: qty });
     localStorage.setItem(key, JSON.stringify(cart));
-    router.push(`/${storeSlug}/cart`);
+    router.push(`${prefix}/cart`);
   }
 
   return (

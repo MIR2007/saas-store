@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ExternalLink, Palette, Settings, Store, Trash2, Wallet } from "lucide-react";
+import { Check, ExternalLink, Globe2, Palette, Settings, Store, Trash2, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { CURRENCIES } from "@/lib/format";
 import { cardClass, dangerBtn, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
+import { storePublicUrl } from "@/lib/domains";
 
 const PRESET_COLORS = [
   { value: "#d97706", label: "عسلي" },
@@ -28,6 +29,7 @@ export default function StoreSettingsPage() {
   const [themeColor, setThemeColor] = useState("#d97706");
   const [currency, setCurrency] = useState("EGP");
   const [active, setActive] = useState(true);
+  const [customDomain, setCustomDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -45,6 +47,7 @@ export default function StoreSettingsPage() {
           setThemeColor(s.themeColor || "#d97706");
           setCurrency(s.currency || "EGP");
           setActive(s.active);
+          setCustomDomain(s.customDomainStatus === "active" ? s.customDomain : null);
         }
         setLoaded(true);
       });
@@ -101,7 +104,7 @@ export default function StoreSettingsPage() {
         subtitle="اسم المتجر، الشكل، العملة، وحالة الظهور — كل حاجة تحت إيدك."
         icon={<Settings className="h-6 w-6" />}
         action={
-          <a href={`/${slug}`} target="_blank" rel="noreferrer" className={secondaryBtn}>
+          <a href={storePublicUrl(slug, customDomain)} target="_blank" rel="noreferrer" className={secondaryBtn}>
             عرض المتجر
             <ExternalLink className="h-4 w-4" />
           </a>
@@ -122,10 +125,11 @@ export default function StoreSettingsPage() {
             <div>
               <label className={labelClass}>رابط المتجر</label>
               <div className="flex items-center overflow-hidden rounded-xl border border-border bg-surface px-3 py-2.5" dir="ltr">
-                <span className="text-xs font-semibold text-muted">beepanal.store/</span>
-                <span className="text-xs font-bold text-foreground">{slug}</span>
+                <span className="text-xs font-bold text-foreground">{slug}.beepanal.store</span>
               </div>
-              <p className="mt-1.5 text-[11px] text-muted">الرابط ثابت ومينفعش يتغير بعد إنشاء المتجر.</p>
+              <p className="mt-1.5 text-[11px] text-muted">
+                ده رابط المتجر المجاني. تقدر توصل دومينك الخاص من إعدادات الدومين.
+              </p>
             </div>
             <div>
               <label className={labelClass}>وصف المتجر</label>
@@ -196,6 +200,26 @@ export default function StoreSettingsPage() {
           <p className="mt-1.5 text-[11px] text-muted">
             كل الأسعار في المتجر هتظهر بالعملة دي. الجنيه المصري هو الافتراضي.
           </p>
+        </section>
+
+        <section className={`${cardClass} p-6`}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <Globe2 className="mt-0.5 h-5 w-5 text-primary" />
+              <div>
+                <h2 className="font-extrabold text-foreground">دومين المتجر</h2>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  {customDomain
+                    ? `دومينك الخاص متفعّل: ${customDomain}`
+                    : "اربط دومينك الخاص بسهولة، وهنظبط لك شهادات الأمان تلقائيًا."}
+                </p>
+              </div>
+            </div>
+            <Link href={`/dashboard/stores/${storeId}/settings/domain`} className={secondaryBtn}>
+              إعدادات الدومين
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </div>
         </section>
 
         <section className={`${cardClass} p-6`}>

@@ -38,6 +38,10 @@ model Store {
   currency    String     @default("EGP")
   walletBalance Float    @default(0)
   active      Boolean    @default(true)
+  customDomain       String?  @unique
+  customDomainStatus String   @default("none")
+  domainToken        String   @default("")
+  domainVerification String   @default("")
   createdAt   DateTime   @default(now())
   categories  Category[]
   products    Product[]

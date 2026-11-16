@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, MapPin, Phone, ShoppingBag, Truck } from "lucide-react";
 import { formatMoney } from "@/lib/format";
+import { getStoreBase } from "@/lib/store-url";
 
 export default async function OrderConfirmationPage(props: PageProps<"/[slug]/order/[orderId]">) {
   const { slug, orderId } = await props.params;
@@ -12,6 +13,7 @@ export default async function OrderConfirmationPage(props: PageProps<"/[slug]/or
   if (!order) notFound();
 
   const color = store.themeColor || "#d97706";
+  const base = await getStoreBase(store.slug, store.customDomain);
   const shortId = `#${order.id.slice(-8).toUpperCase()}`;
   const count = order.items.reduce((s, it) => s + it.quantity, 0);
 
@@ -111,7 +113,7 @@ export default async function OrderConfirmationPage(props: PageProps<"/[slug]/or
 
           <div className="mt-5 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
             <Link
-              href={`/${store.slug}`}
+              href={`${base}` || "/"}
               className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-colors hover:bg-primary-dark sm:w-auto"
             >
               كمّل تسوق

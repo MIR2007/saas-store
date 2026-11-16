@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 
-export default function CartLink({ slug }: { slug: string }) {
+export default function CartLink({ slug, base }: { slug: string; base?: string }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function CartLink({ slug }: { slug: string }) {
 
   return (
     <Link
-      href={`/${slug}/cart`}
+      href={`${base ?? `/${slug}`}/cart`}
       className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-bold text-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
     >
       <ShoppingCart className="h-4 w-4" />

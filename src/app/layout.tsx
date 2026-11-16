@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   description:
     "اعمل متجرك الأونلاين في دقايق، من غير مبرمج. منتجات، طلبات، دفع وشحن — بالجنيه المصري. جرّب Bee Panal 7 أيام ببلاش.",
   keywords: ["متجر إلكتروني", "إنشاء متجر", "تجارة إلكترونية", "مصر", "Bee Panal"],
+  applicationName: "Bee Panal",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
   openGraph: {
     title: "Bee Panal | منصة المتاجر الإلكترونية في مصر",
     description: "اعمل متجرك الأونلاين في دقايق، من غير مبرمج — جرّب 7 أيام ببلاش.",

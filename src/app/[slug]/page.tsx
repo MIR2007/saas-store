@@ -5,6 +5,7 @@ import CartLink from "@/components/storefront/CartLink";
 import Link from "next/link";
 import { ShieldCheck, ShoppingBag, Sparkles, Truck } from "lucide-react";
 import { formatNumber } from "@/lib/format";
+import { getStoreBase } from "@/lib/store-url";
 
 export default async function StoreHome(props: PageProps<"/[slug]">) {
   const { slug } = await props.params;
@@ -21,6 +22,7 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
   });
   const categories = await prisma.category.findMany({ where: { storeId: store.id } });
   const color = store.themeColor || "#d97706";
+  const base = await getStoreBase(store.slug, store.customDomain);
 
   return (
     <div className="min-h-screen bg-surface">
@@ -28,7 +30,7 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
 
       <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href={`/${store.slug}`} className="flex items-center gap-2.5">
+          <Link href={`${base}` || "/"} className="flex items-center gap-2.5">
             <span
               className="grid h-10 w-10 place-items-center rounded-xl text-base font-extrabold text-white shadow-sm"
               style={{ backgroundColor: color }}
@@ -37,7 +39,7 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
             </span>
             <span className="font-extrabold text-foreground">{store.name}</span>
           </Link>
-          <CartLink slug={store.slug} />
+          <CartLink slug={store.slug} base={base} />
         </div>
       </header>
 
@@ -88,7 +90,7 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
         {categories.length > 0 && (
           <div className="mb-6 flex flex-wrap gap-2">
             <Link
-              href={`/${store.slug}`}
+              href={`${base}` || "/"}
               className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${
                 !categoryFilter
                   ? "text-white shadow-sm"
@@ -103,7 +105,7 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
               return (
                 <Link
                   key={c.id}
-                  href={`/${store.slug}?category=${c.id}`}
+                  href={`${base}?category=${c.id}`}
                   className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${
                     active
                       ? "text-white shadow-sm"
@@ -143,7 +145,7 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
         ) : (
           <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
             {products.map((p) => (
-              <ProductCard key={p.id} product={p} storeSlug={store.slug} currency={store.currency} />
+              <ProductCard key={p.id} product={p} storeSlug={store.slug} base={base} currency={store.currency} />
             ))}
           </div>
         )}

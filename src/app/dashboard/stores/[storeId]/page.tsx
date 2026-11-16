@@ -17,6 +17,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { primaryBtn, secondaryBtn, cardClass } from "@/lib/ui";
+import { storePublicUrl } from "@/lib/domains";
 
 export default async function StoreDetailPage(props: PageProps<"/dashboard/stores/[storeId]">) {
   const session = await getSession();
@@ -70,7 +71,7 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
         backLabel="كل المتاجر"
         eyebrow="لوحة المتجر"
         title={store.name}
-        subtitle={`beepanal.store/${store.slug}`}
+        subtitle={`${store.slug}.beepanal.store`}
         icon={<Store className="h-6 w-6" />}
         action={
           <>
@@ -78,7 +79,7 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
               <Settings className="h-4 w-4" />
               الإعدادات
             </Link>
-            <a href={`/${store.slug}`} target="_blank" rel="noreferrer" className={primaryBtn}>
+            <a href={storePublicUrl(store.slug, store.customDomain)} target="_blank" rel="noreferrer" className={primaryBtn}>
               عرض المتجر
               <ArrowUpRight className="h-4 w-4" />
             </a>

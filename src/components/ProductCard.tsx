@@ -15,8 +15,19 @@ type Product = {
   stock: number;
 };
 
-export default function ProductCard({ product, storeSlug, currency }: { product: Product; storeSlug: string; currency: string }) {
+export default function ProductCard({
+  product,
+  storeSlug,
+  base,
+  currency,
+}: {
+  product: Product;
+  storeSlug: string;
+  base?: string;
+  currency: string;
+}) {
   const router = useRouter();
+  const prefix = base ?? `/${storeSlug}`;
   let images: string[] = [];
   try { images = JSON.parse(product.images || "[]"); } catch { images = []; }
 
@@ -31,12 +42,12 @@ export default function ProductCard({ product, storeSlug, currency }: { product:
     if (idx >= 0) cart[idx].quantity += 1;
     else cart.push({ productId: product.id, name: product.name, price: product.price, quantity: 1 });
     localStorage.setItem(key, JSON.stringify(cart));
-    router.push(`/${storeSlug}/cart`);
+    router.push(`${prefix}/cart`);
   }
 
   return (
     <div className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5">
-      <Link href={`/${storeSlug}/products/${product.id}`} className="block">
+      <Link href={`${prefix}/products/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-surface">
           {images[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -61,7 +72,7 @@ export default function ProductCard({ product, storeSlug, currency }: { product:
         </div>
       </Link>
       <div className="p-3.5 sm:p-4">
-        <Link href={`/${storeSlug}/products/${product.id}`}>
+        <Link href={`${prefix}/products/${product.id}`}>
           <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
             {product.name}
           </h3>

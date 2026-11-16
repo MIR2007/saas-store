@@ -17,6 +17,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [currency, setCurrency] = useState("EGP");
   const [storeName, setStoreName] = useState("");
+  const [base, setBase] = useState(`/${slug}`);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("القاهرة");
@@ -34,6 +35,13 @@ export default function CheckoutPage() {
       .then((d) => {
         setCurrency(d.store?.currency || "EGP");
         setStoreName(d.store?.name || "");
+        if (d.store) {
+          const host = window.location.hostname.toLowerCase();
+          const isOwnHost =
+            host === `${slug}.beepanal.store` ||
+            (d.store.customDomain && host === String(d.store.customDomain).toLowerCase());
+          setBase(isOwnHost ? "" : `/${slug}`);
+        }
       });
   }, [slug]);
 
@@ -67,7 +75,7 @@ export default function CheckoutPage() {
         return;
       }
       localStorage.removeItem(`cart:${slug}`);
-      router.push(`/${slug}/order/${data.order.id}`);
+      router.push(`${base}/order/${data.order.id}`);
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");
     } finally {
@@ -79,7 +87,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
-          <Link href={`/${slug}/cart`} className="flex items-center gap-1.5 text-sm font-bold text-muted hover:text-foreground">
+          <Link href={`${base}/cart`} className="flex items-center gap-1.5 text-sm font-bold text-muted hover:text-foreground">
             <span>←</span>
             العودة للسلة
           </Link>

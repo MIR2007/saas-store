@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Package, ShoppingBag, Wallet } from "lucide-react";
 import { formatMoney, formatNumber } from "@/lib/format";
+import { storePublicUrl } from "@/lib/domains";
 
 export type StoreCardData = {
   id: string;
@@ -9,6 +10,7 @@ export type StoreCardData = {
   themeColor: string;
   currency: string;
   active: boolean;
+  customDomain?: string | null;
   _count: { products: number; orders: number };
   revenue?: number;
 };
@@ -42,7 +44,7 @@ export default function StoreCard({ store }: { store: StoreCardData }) {
 
       <div className="p-4">
         <h3 className="truncate text-base font-extrabold text-foreground">{store.name}</h3>
-        <p className="mt-0.5 truncate text-[11px] text-muted">beepanal.store/{store.slug}</p>
+        <p className="mt-0.5 truncate text-[11px] text-muted">{store.slug}.beepanal.store</p>
 
         <div className="mt-4 grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-surface/70 text-center rtl:divide-x-reverse">
           <div className="px-1 py-2.5">
@@ -72,7 +74,7 @@ export default function StoreCard({ store }: { store: StoreCardData }) {
             إدارة المتجر
           </Link>
           <a
-            href={`/${store.slug}`}
+            href={storePublicUrl(store.slug, store.customDomain)}
             target="_blank"
             aria-label="عرض المتجر"
             title="عرض المتجر"

@@ -4,6 +4,7 @@ import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
 import CartLink from "@/components/storefront/CartLink";
 import { formatMoney } from "@/lib/format";
+import { getStoreBase } from "@/lib/store-url";
 import { ChevronLeft, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 
 export default async function ProductDetailPage(props: PageProps<"/[slug]/products/[productId]">) {
@@ -20,6 +21,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
   try { images = JSON.parse(product.images || "[]"); } catch { images = []; }
 
   const color = store.themeColor || "#d97706";
+  const base = await getStoreBase(store.slug, store.customDomain);
   const onSale = product.comparePrice && product.comparePrice > product.price;
   const discount = onSale ? Math.round((1 - product.price / product.comparePrice!) * 100) : 0;
 
@@ -27,7 +29,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href={`/${store.slug}`} className="flex items-center gap-2.5">
+          <Link href={`${base}` || "/"} className="flex items-center gap-2.5">
             <span
               className="grid h-9 w-9 place-items-center rounded-xl text-sm font-extrabold text-white"
               style={{ backgroundColor: color }}
@@ -36,19 +38,19 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
             </span>
             <span className="text-sm font-extrabold text-foreground">{store.name}</span>
           </Link>
-          <CartLink slug={store.slug} />
+          <CartLink slug={store.slug} base={base} />
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted">
-          <Link href={`/${store.slug}`} className="transition-colors hover:text-foreground">
+          <Link href={`${base}` || "/"} className="transition-colors hover:text-foreground">
             المتجر
           </Link>
           <ChevronLeft className="h-3.5 w-3.5" />
           {product.category && (
             <>
-              <Link href={`/${store.slug}?category=${product.category.id}`} className="transition-colors hover:text-foreground">
+              <Link href={`${base}?category=${product.category.id}`} className="transition-colors hover:text-foreground">
                 {product.category.name}
               </Link>
               <ChevronLeft className="h-3.5 w-3.5" />
@@ -125,7 +127,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
             )}
 
             <div className="mt-7">
-              <AddToCartButton product={product} storeSlug={store.slug} />
+              <AddToCartButton product={product} storeSlug={store.slug} base={base} />
             </div>
 
             <div className="mt-6 grid gap-2.5 sm:grid-cols-3">
@@ -143,7 +145,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
             </div>
 
             <Link
-              href={`/${store.slug}`}
+              href={`${base}` || "/"}
               className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-muted transition-colors hover:text-primary"
             >
               <ChevronLeft className="h-4 w-4 rotate-180" />

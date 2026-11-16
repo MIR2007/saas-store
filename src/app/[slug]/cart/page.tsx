@@ -15,6 +15,7 @@ export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [currency, setCurrency] = useState("EGP");
   const [storeName, setStoreName] = useState("");
+  const [base, setBase] = useState(`/${slug}`);
 
   useEffect(() => {
     const key = `cart:${slug}`;
@@ -26,6 +27,11 @@ export default function CartPage() {
         if (d.store) {
           setCurrency(d.store.currency || "EGP");
           setStoreName(d.store.name);
+          const host = window.location.hostname.toLowerCase();
+          const isOwnHost =
+            host === `${slug}.beepanal.store` ||
+            (d.store.customDomain && host === String(d.store.customDomain).toLowerCase());
+          setBase(isOwnHost ? "" : `/${slug}`);
         }
       });
   }, [slug]);
@@ -58,7 +64,7 @@ export default function CartPage() {
             لسه مضفتش حاجة. اتفرج على منتجات المتجر واختار اللي يعجبك.
           </p>
           <Link
-            href={`/${slug}`}
+            href={`${base}` || "/"}
             className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-colors hover:bg-primary-dark"
           >
             ارجع للمتجر
@@ -72,7 +78,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
-          <Link href={`/${slug}`} className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+          <Link href={`${base}` || "/"} className="flex items-center gap-2 text-sm font-extrabold text-foreground">
             <span className="text-muted">←</span>
             {storeName || "المتجر"}
           </Link>
@@ -86,7 +92,7 @@ export default function CartPage() {
             <h1 className="text-2xl font-extrabold text-foreground">سلة التسوق</h1>
             <p className="mt-0.5 text-xs text-muted">عندك {count} قطعة في السلة.</p>
           </div>
-          <Link href={`/${slug}`} className="text-xs font-bold text-primary hover:underline">
+          <Link href={`${base}` || "/"} className="text-xs font-bold text-primary hover:underline">
             كمّل تسوق
           </Link>
         </div>
@@ -154,7 +160,7 @@ export default function CartPage() {
               <span className="text-2xl font-extrabold text-foreground">{formatMoney(total, currency)}</span>
             </div>
             <button
-              onClick={() => router.push(`/${slug}/checkout`)}
+              onClick={() => router.push(`${base}/checkout`)}
               className="mt-5 w-full rounded-xl bg-primary py-3 text-sm font-extrabold text-white shadow-md shadow-amber-500/20 transition-colors hover:bg-primary-dark"
             >
               إتمام الطلب
