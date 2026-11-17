@@ -70,13 +70,13 @@ export default function StoreHeader({
             <Link href={home} className="rounded-lg px-3 py-2 text-xs font-bold text-muted transition-colors hover:bg-surface hover:text-foreground">
               الرئيسية
             </Link>
-            <Link href={`${home === "/" ? "" : home}#products`} className="rounded-lg px-3 py-2 text-xs font-bold text-muted transition-colors hover:bg-surface hover:text-foreground">
+            <Link href={`${home}#products`} className="rounded-lg px-3 py-2 text-xs font-bold text-muted transition-colors hover:bg-surface hover:text-foreground">
               المنتجات
             </Link>
             {categories.slice(0, 4).map((category) => (
               <Link
                 key={category.id}
-                href={`${base}?category=${category.id}#products`}
+                href={`${home}?category=${category.id}#products`}
                 className="rounded-lg px-3 py-2 text-xs font-bold text-muted transition-colors hover:bg-surface hover:text-foreground"
               >
                 {category.name}
@@ -86,7 +86,7 @@ export default function StoreHeader({
 
           <div className="flex shrink-0 items-center gap-2">
             <Link
-              href={`${home === "/" ? "" : home}#products`}
+              href={`${home}#products`}
               className="hidden items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-extrabold text-white shadow-sm shadow-black/10 transition-colors hover:bg-primary-dark sm:inline-flex"
             >
               <ShoppingBag className="h-3.5 w-3.5" />

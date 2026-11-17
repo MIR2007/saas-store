@@ -53,7 +53,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
           {product.category && (
             <>
               <Link
-                href={`${base}?category=${product.category.id}#products`}
+                href={`${base || "/"}?category=${product.category.id}#products`}
                 className="transition-colors hover:text-foreground"
               >
                 {product.category.name}
@@ -164,7 +164,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
             </div>
 
             <Link
-              href={`${base}#products`}
+              href={`${base || "/"}#products`}
               className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-muted transition-colors hover:text-primary"
             >
               <ChevronLeft className="h-4 w-4 rotate-180" />

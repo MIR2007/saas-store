@@ -136,7 +136,7 @@ export default function StoreFooter({
               {categories.slice(0, 6).map((category) => (
                 <li key={category.id}>
                   <Link
-                    href={`${base}?category=${category.id}#products`}
+                    href={`${home}?category=${category.id}#products`}
                     className="transition-colors hover:text-primary"
                   >
                     {category.name}
