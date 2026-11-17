@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
 type Product = {
@@ -14,7 +14,6 @@ type Product = {
   images: string;
   stock: number;
   options?: string;
-  shippingPrice?: number;
 };
 
 export default function ProductCard({
@@ -22,16 +21,24 @@ export default function ProductCard({
   storeSlug,
   base,
   currency,
+  cardStyle = "minimal",
+  align = "center",
 }: {
   product: Product;
   storeSlug: string;
   base?: string;
   currency: string;
+  cardStyle?: "minimal" | "bordered" | "elevated";
+  align?: "center" | "start";
 }) {
   const router = useRouter();
   const prefix = base ?? `/${storeSlug}`;
   let images: string[] = [];
-  try { images = JSON.parse(product.images || "[]"); } catch { images = []; }
+  try {
+    images = JSON.parse(product.images || "[]");
+  } catch {
+    images = [];
+  }
 
   const onSale = product.comparePrice && product.comparePrice > product.price;
   const discount = onSale ? Math.round((1 - product.price / product.comparePrice!) * 100) : 0;
@@ -53,7 +60,6 @@ export default function ProductCard({
       name: string;
       price: number;
       quantity: number;
-      shipping?: number;
       image?: string;
     }[] = raw ? JSON.parse(raw) : [];
     const idx = cart.findIndex((c) => c.productId === product.id && c.name === product.name);
@@ -64,60 +70,90 @@ export default function ProductCard({
         name: product.name,
         price: product.price,
         quantity: 1,
-        shipping: product.shippingPrice || 0,
         image: images[0] || "",
       });
     localStorage.setItem(key, JSON.stringify(cart));
     router.push(`${prefix}/cart`);
   }
 
+  const shell =
+    cardStyle === "bordered"
+      ? "border border-border bg-card p-2"
+      : cardStyle === "elevated"
+        ? "border border-border bg-card p-2 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.45)]"
+        : "bg-transparent";
+
   return (
-    <div className="group overflow-hidden rounded-[var(--store-radius,1rem)] border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5">
+    <article className={`group flex flex-col transition-transform duration-300 hover:-translate-y-1 ${shell}`}>
       <Link href={`${prefix}/products/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-surface">
           {images[0] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={images[0]}
-              alt={product.name}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={images[0]}
+                alt={product.name}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+              />
+              {images[1] && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={images[1]}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                />
+              )}
+            </>
           ) : (
             <div className="flex h-full w-full items-center justify-center text-4xl text-muted">🛍️</div>
           )}
+
           {onSale && (
-            <span className="absolute start-3 top-3 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-sm">
+            <span className="absolute start-2.5 top-2.5 bg-[#111111] px-2 py-1 text-[9px] font-bold tracking-[0.08em] text-white">
               خصم {discount}%
             </span>
           )}
           {product.stock <= 0 && (
-            <span className="absolute inset-x-0 bottom-0 bg-black/60 py-1.5 text-center text-[10px] font-bold text-white backdrop-blur-sm">
+            <span className="absolute inset-x-0 bottom-0 bg-black/65 py-1.5 text-center text-[10px] font-bold text-white backdrop-blur-sm">
               نفذ المخزون
             </span>
           )}
         </div>
       </Link>
-      <div className="p-3.5 sm:p-4">
+
+      <div
+        className={`flex flex-1 flex-col px-1 pt-3.5 ${
+          align === "center" ? "items-center text-center" : "items-start text-start"
+        }`}
+      >
         <Link href={`${prefix}/products/${product.id}`}>
-          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
+          <h3 className="store-heading line-clamp-2 min-h-[2.4rem] text-[13px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-sm">
             {product.name}
           </h3>
         </Link>
-        <div className="mt-2 flex flex-wrap items-baseline gap-1.5">
-          <span className="text-base font-extrabold text-primary">{formatMoney(product.price, currency)}</span>
+
+        <span className={`store-hairline my-2.5 ${align === "center" ? "mx-auto" : ""}`} />
+
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="text-[13px] font-bold tracking-wide text-foreground sm:text-sm">
+            {formatMoney(product.price, currency)}
+          </span>
           {onSale && (
-            <span className="text-[11px] text-muted line-through">{formatMoney(product.comparePrice!, currency)}</span>
+            <span className="text-[11px] text-muted line-through">
+              {formatMoney(product.comparePrice!, currency)}
+            </span>
           )}
         </div>
+
         <button
           onClick={addToCart}
           disabled={product.stock <= 0}
-          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[var(--store-btn-radius,0.75rem)] bg-primary py-2.5 text-xs font-bold text-white shadow-sm shadow-black/10 transition-all hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+          className="mt-3.5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--store-btn-radius)] border border-foreground/25 bg-transparent py-2.5 text-[10px] font-bold tracking-[0.1em] text-foreground transition-colors hover:border-foreground hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-foreground"
         >
-          <ShoppingCart className="h-3.5 w-3.5" />
+          <ShoppingBag className="h-3.5 w-3.5" />
           {product.stock <= 0 ? "نفذ المخزون" : "ضيف للسلة"}
         </button>
       </div>
-    </div>
+    </article>
   );
 }

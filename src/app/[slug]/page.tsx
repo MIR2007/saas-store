@@ -17,13 +17,12 @@ import {
   RotateCcw,
   ShieldCheck,
   ShoppingBag,
-  Sparkles,
   Truck,
 } from "lucide-react";
-import { formatNumber } from "@/lib/format";
+import { formatMoney, formatNumber } from "@/lib/format";
 import { storePublicUrl } from "@/lib/domains";
 import { getStoreBase } from "@/lib/store-url";
-import { getStoreTheme } from "@/lib/themes";
+import { getStoreTheme, parseThemeConfig, storeGridClass } from "@/lib/themes";
 import { whatsappUrl } from "@/lib/whatsapp";
 
 function firstImage(raw?: string | null) {
@@ -37,8 +36,14 @@ function firstImage(raw?: string | null) {
 
 export default async function StoreHome(props: PageProps<"/[slug]">) {
   const { slug } = await props.params;
-  const searchParams = await props.searchParams;
-  const categoryFilter = (searchParams as any)?.category as string | undefined;
+  const searchParams = (await props.searchParams) as Record<
+    string,
+    string | string[] | undefined
+  >;
+  const categoryFilter =
+    typeof searchParams.category === "string" ? searchParams.category : undefined;
+  const query =
+    typeof searchParams.q === "string" ? searchParams.q.trim().slice(0, 80) : "";
 
   const store = await prisma.store.findUnique({ where: { slug } });
   if (!store) notFound();
@@ -55,19 +60,29 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
     prisma.category.findMany({ where: { storeId: store.id }, orderBy: { name: "asc" } }),
   ]);
 
-  const products = categoryFilter
-    ? allProducts.filter((product) => product.categoryId === categoryFilter)
-    : allProducts;
+  const normalizedQuery = query.toLowerCase();
+  const products = allProducts.filter((product) => {
+    const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
+    const matchesQuery =
+      !normalizedQuery ||
+      `${product.name} ${product.description}`.toLowerCase().includes(normalizedQuery);
+    return matchesCategory && matchesQuery;
+  });
   const activeCategory = categories.find((category) => category.id === categoryFilter);
   const theme = getStoreTheme(store.theme);
-  const color = store.themeColor || theme.primary;
+  const config = parseThemeConfig(store.themeConfig);
+  const color = config.colors.primary || store.themeColor || theme.primary;
   const base = await getStoreBase(store.slug, store.customDomain);
   const wa = whatsappUrl(store.phone);
+  const initial = store.name.trim().charAt(0) || "B";
 
-  const heroImages = allProducts
-    .map((product) => firstImage(product.images))
+  const heroImages = [
+    ...allProducts.map((product) => firstImage(product.images)),
+    ...categories.map((category) => category.image),
+  ]
     .filter(Boolean)
     .slice(0, 3);
+  const heroImage = config.heroImage || heroImages[0] || "";
 
   const countFor = (categoryId: string) =>
     allProducts.filter((product) => product.categoryId === categoryId).length;
@@ -96,6 +111,26 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
     address: { "@type": "PostalAddress", addressCountry: "EG" },
   };
 
+  const defaultAnnouncement =
+    store.freeShippingThreshold > 0
+      ? `شحن مجاني للطلبات فوق ${formatMoney(store.freeShippingThreshold, store.currency)} — الدفع عند الاستلام`
+      : "شحن سريع لكل محافظات مصر — الدفع عند الاستلام";
+  const announcement = config.announcement || defaultAnnouncement;
+
+  const heroTitle = config.heroTitle || store.name;
+  const heroSubtitle =
+    config.heroSubtitle ||
+    store.description ||
+    "تشكيلة مختارة بعناية من المنتجات التي تجمع بين الأناقة والجودة. اطلب دلوقتي واستلم عند باب البيت.";
+  const heroBadge = config.heroBadge || "تشكيلة جديدة";
+
+  const trustItems = [
+    { icon: Truck, title: "شحن سريع", desc: "لكل محافظات مصر" },
+    { icon: ShieldCheck, title: "دفع عند الاستلام", desc: "افحص قبل ما تدفع" },
+    { icon: RotateCcw, title: "استبدال سهل", desc: "خلال 14 يوم" },
+    { icon: Headphones, title: "دعم واتساب", desc: "معاك قبل وبعد الطلب" },
+  ];
+
   return (
     <div className="min-h-screen bg-surface">
       <script
@@ -107,221 +142,193 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
         store={{ name: store.name, slug: store.slug, logo: store.logo, phone: store.phone }}
         base={base}
         categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+        announcement={announcement}
+        showAnnouncement={config.announcementEnabled}
+        headerStyle={config.headerStyle}
       />
 
       <main>
-        {/* Hero */}
-        <section className="relative overflow-hidden border-b border-border bg-card">
-          {theme.pattern !== "none" && (
+        {config.showHero && (
+          <section className="relative overflow-hidden bg-[#0d0d0d] text-white">
+            {theme.pattern !== "none" && (
+              <div
+                className={`pointer-events-none absolute inset-0 opacity-[0.06] store-pattern-${theme.pattern}`}
+                aria-hidden="true"
+              />
+            )}
             <div
-              className={`pointer-events-none absolute inset-0 opacity-50 store-pattern-${theme.pattern}`}
+              className="pointer-events-none absolute -start-24 top-1/3 h-72 w-72 rounded-full blur-3xl"
+              style={{ backgroundColor: `${color}22` }}
               aria-hidden="true"
             />
-          )}
-          <div
-            className="absolute -end-24 -top-28 h-72 w-72 rounded-full blur-3xl"
-            style={{ backgroundColor: `${color}22` }}
-          />
-          <div
-            className="absolute -bottom-32 start-1/4 h-64 w-64 rounded-full blur-3xl"
-            style={{ backgroundColor: `${color}14` }}
-          />
-          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8">
-            <div>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold"
-                style={{ backgroundColor: `${color}18`, color }}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                متجر إلكتروني مصري · دفع عند الاستلام
-              </span>
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                {store.name}
-              </h1>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted sm:text-base">
-                {store.description ||
-                  "اختار من منتجاتنا المختارة بعناية، واطلب دلوقتي واستلم عند باب البيت. شحن سريع ودفع عند الاستلام."}
-              </p>
+            <div className="relative mx-auto grid max-w-7xl lg:grid-cols-2">
+              <div className="flex flex-col justify-center px-5 py-14 sm:px-8 lg:py-20 lg:pe-16">
+                <span className="store-eyebrow inline-flex items-center gap-2 text-[10px] font-bold uppercase text-primary">
+                  <span className="h-px w-8 bg-primary" aria-hidden="true" />
+                  {heroBadge}
+                </span>
+                <h1 className="store-heading mt-5 max-w-xl text-4xl font-semibold leading-[1.12] sm:text-5xl lg:text-6xl">
+                  {heroTitle}
+                </h1>
+                <p className="mt-5 max-w-md text-sm leading-relaxed text-white/65 sm:text-[15px]">
+                  {heroSubtitle}
+                </p>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link
-                  href={`${base}#products`}
-                  className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius,0.75rem)] bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-black/10 transition-all hover:-translate-y-0.5 hover:bg-primary-dark"
-                >
-                  <ShoppingBag className="h-4 w-4" />
-                  تسوق الآن
-                </Link>
-                {wa ? (
-                  <a
-                    href={wa}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius,0.75rem)] border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    اسأل على واتساب
-                  </a>
-                ) : (
+                <div className="mt-8 flex flex-wrap items-center gap-2.5">
                   <Link
-                    href={`${base}#categories`}
-                    className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius,0.75rem)] border border-border bg-card px-5 py-3 text-sm font-bold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
+                    href={`${base}#products`}
+                    className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius)] bg-primary px-7 py-3.5 text-[11px] font-bold tracking-[0.14em] text-white transition-opacity hover:opacity-90"
                   >
-                    <Boxes className="h-4 w-4" />
-                    شوف الأقسام
+                    <ShoppingBag className="h-4 w-4" />
+                    تسوق الآن
                   </Link>
-                )}
+                  {wa ? (
+                    <a
+                      href={wa}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius)] border border-white/25 px-7 py-3.5 text-[11px] font-bold tracking-[0.12em] text-white transition-colors hover:border-primary hover:text-primary"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      اسأل على واتساب
+                    </a>
+                  ) : (
+                    <Link
+                      href={`${base}#categories`}
+                      className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius)] border border-white/25 px-7 py-3.5 text-[11px] font-bold tracking-[0.12em] text-white transition-colors hover:border-primary hover:text-primary"
+                    >
+                      <Boxes className="h-4 w-4" />
+                      شوف الأقسام
+                    </Link>
+                  )}
+                </div>
+
+                <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/10 pt-5 text-[10px] font-semibold tracking-wide text-white/55">
+                  <span className="inline-flex items-center gap-2">
+                    <ShoppingBag className="h-3.5 w-3.5 text-primary" />
+                    {formatNumber(allProducts.length)} منتج متاح
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Boxes className="h-3.5 w-3.5 text-primary" />
+                    {formatNumber(categories.length)} قسم
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Truck className="h-3.5 w-3.5 text-primary" />
+                    شحن لكل المحافظات
+                  </span>
+                </div>
               </div>
 
-              <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-semibold text-muted">
-                <span className="inline-flex items-center gap-1.5">
-                  <ShoppingBag className="h-4 w-4" style={{ color }} />
-                  {formatNumber(allProducts.length)} منتج متاح
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Boxes className="h-4 w-4" style={{ color }} />
-                  {formatNumber(categories.length)} قسم
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Truck className="h-4 w-4" style={{ color }} />
-                  شحن لكل المحافظات
-                </span>
-              </div>
-            </div>
-
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-              <div className="absolute -inset-4 rounded-[2.5rem] bg-primary/10 blur-2xl" aria-hidden="true" />
-              <div className="relative grid grid-cols-2 gap-3">
-                {heroImages.length > 0 ? (
-                  <>
-                    <div className="col-span-2 aspect-[16/9] overflow-hidden rounded-[var(--store-radius,1rem)] border border-border bg-surface shadow-xl">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={heroImages[0]} alt={store.name} className="h-full w-full object-cover" />
-                    </div>
-                    {heroImages.slice(1, 3).map((image, index) => (
-                      <div
-                        key={index}
-                        className="aspect-square overflow-hidden rounded-[var(--store-radius,1rem)] border border-border bg-surface shadow-lg"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={image} alt="" className="h-full w-full object-cover" />
-                      </div>
-                    ))}
-                  </>
+              <div className="relative min-h-[300px] overflow-hidden sm:min-h-[420px] lg:min-h-[580px]">
+                {heroImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={heroImage} alt={store.name} className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
-                  <div className="col-span-2 flex aspect-[16/10] flex-col items-center justify-center gap-4 rounded-[var(--store-radius,1rem)] border border-border bg-card p-8 text-center shadow-xl">
-                    {store.logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={store.logo}
-                        alt={store.name}
-                        className="h-24 w-24 rounded-[var(--store-radius,1.25rem)] border border-border object-cover shadow-md"
-                      />
-                    ) : (
-                      <span
-                        className="grid h-24 w-24 place-items-center rounded-[var(--store-radius,1.25rem)] text-4xl font-extrabold text-white shadow-md"
-                        style={{ backgroundColor: color }}
-                      >
-                        {store.name.charAt(0)}
-                      </span>
-                    )}
-                    <div>
-                      <div className="text-lg font-extrabold text-foreground">{store.name}</div>
-                      <div className="mt-1 text-xs text-muted">منتجات أصلية · أسعار مناسبة · خدمة سريعة</div>
-                    </div>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,#2a241c,transparent_62%)]" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent lg:bg-gradient-to-l" />
+
+                {!heroImage && store.logo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={store.logo}
+                    alt={store.name}
+                    className="absolute inset-0 m-auto h-28 w-28 object-contain opacity-80"
+                  />
+                )}
+                {!heroImage && !store.logo && (
+                  <div className="absolute inset-0 grid place-items-center">
+                    <span className="store-heading text-7xl font-semibold tracking-[0.2em] text-primary/50">
+                      {initial}
+                    </span>
                   </div>
                 )}
-              </div>
-              <div className="absolute -bottom-5 start-4 flex items-center gap-2.5 rounded-2xl border border-border bg-card/95 px-4 py-2.5 shadow-xl backdrop-blur">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <BadgeCheck className="h-5 w-5" />
-                </span>
-                <div>
-                  <div className="text-[11px] font-extrabold text-foreground">تسوق بأمان</div>
-                  <div className="text-[10px] text-muted">دفع عند الاستلام</div>
+
+                <div className="absolute bottom-5 start-5 border border-white/20 bg-black/35 px-4 py-3 backdrop-blur">
+                  <div className="store-eyebrow text-[9px] font-bold uppercase text-primary">Bee Panal</div>
+                  <div className="mt-1 text-xs font-semibold text-white">تجربة تسوق فاخرة</div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* Trust strip */}
-        <section className="border-b border-border bg-card">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-5 sm:px-6 md:grid-cols-4 lg:px-8">
-            {[
-              { icon: Truck, title: "شحن سريع", desc: "لكل محافظات مصر" },
-              { icon: ShieldCheck, title: "دفع عند الاستلام", desc: "افحص قبل ما تدفع" },
-              { icon: RotateCcw, title: "استبدال سهل", desc: "خلال 14 يوم" },
-              { icon: Headphones, title: "دعم واتساب", desc: "معاك قبل وبعد الطلب" },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="flex items-center gap-2.5 rounded-[var(--store-radius,1rem)] border border-border bg-surface px-3 py-3"
-              >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <item.icon className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <div className="truncate text-[11px] font-extrabold text-foreground">{item.title}</div>
-                  <div className="truncate text-[10px] text-muted">{item.desc}</div>
+        {config.showTrust && (
+          <section className="border-b border-border bg-card">
+            <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-5 gap-y-6 px-4 py-7 sm:px-6 md:grid-cols-4 lg:px-8">
+              {trustItems.map((item) => (
+                <div key={item.title} className="flex items-start gap-2.5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center border border-primary/25 bg-primary/[0.06] text-primary">
+                    <item.icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-foreground">{item.title}</div>
+                    <div className="mt-0.5 text-[10px] text-muted">{item.desc}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* Categories */}
-        {categories.length > 0 && (
-          <section id="categories" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-10 sm:px-6 lg:px-8">
-            <div className="mb-5 flex items-end justify-between gap-3">
+        {config.showCategories && categories.length > 0 && (
+          <section id="categories" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-14 sm:px-6 lg:px-8">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">تسوق حسب القسم</h2>
-                <p className="mt-1 text-xs text-muted">اختار القسم اللي يناسبك ووصل للمنتج في ثانية.</p>
+                <span className="store-eyebrow text-[10px] font-bold uppercase text-primary">
+                  Collections
+                </span>
+                <h2 className="store-heading mt-2 text-2xl font-semibold text-foreground sm:text-3xl">
+                  تسوق حسب القسم
+                </h2>
               </div>
               <Link
                 href={`${base}#products`}
-                className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-primary hover:text-primary-dark"
+                className="inline-flex shrink-0 items-center gap-1.5 border-b border-primary pb-1 text-[10px] font-bold tracking-[0.1em] text-foreground transition-colors hover:text-primary"
               >
                 كل المنتجات
                 <ArrowLeft className="h-3.5 w-3.5" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
               {categories.map((category) => (
                 <Link
                   key={category.id}
                   href={`${base}?category=${category.id}#products`}
-                  className="group relative overflow-hidden rounded-[var(--store-radius,1rem)] border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
+                  className="group relative block overflow-hidden bg-surface"
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-surface">
+                  <div className="aspect-[4/5] overflow-hidden">
                     {category.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={category.image}
                         alt={category.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     ) : (
                       <div
                         className="flex h-full w-full items-center justify-center"
                         style={{ background: `linear-gradient(135deg, ${color}22, ${color}08)` }}
                       >
-                        <span className="text-4xl font-extrabold" style={{ color }}>
+                        <span className="store-heading text-5xl font-semibold" style={{ color }}>
                           {category.name.charAt(0)}
                         </span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-extrabold text-white">{category.name}</div>
-                        <div className="text-[10px] font-semibold text-white/80">
-                          {formatNumber(countFor(category.id))} منتج
-                        </div>
-                      </div>
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/20 text-white backdrop-blur">
-                        <ArrowLeft className="h-3.5 w-3.5" />
-                      </span>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 text-center">
+                    <div className="store-heading text-sm font-semibold tracking-[0.08em] text-white sm:text-base">
+                      {category.name}
                     </div>
+                    <div className="mt-1 text-[10px] text-white/65">
+                      {formatNumber(countFor(category.id))} منتج
+                    </div>
+                    <span className="mt-3 inline-flex items-center gap-1 border-b border-primary pb-0.5 text-[9px] font-bold tracking-[0.16em] text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                      تسوق الآن
+                      <ArrowLeft className="h-3 w-3" />
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -329,32 +336,40 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
           </section>
         )}
 
-        {/* Products */}
-        <section id="products" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <section id="products" className="mx-auto max-w-7xl scroll-mt-28 px-4 pb-16 sm:px-6 lg:px-8">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
-                {activeCategory ? activeCategory.name : "كل منتجات المتجر"}
+              <span className="store-eyebrow text-[10px] font-bold uppercase text-primary">
+                {query ? "Search" : "The Edit"}
+              </span>
+              <h2 className="store-heading mt-2 text-2xl font-semibold text-foreground sm:text-3xl">
+                {query
+                  ? `نتائج البحث عن «${query}»`
+                  : activeCategory
+                    ? activeCategory.name
+                    : "كل منتجات المتجر"}
               </h2>
-              <p className="mt-1 text-xs text-muted">اختار اللي يعجبك وضيفه للسلة في ثانية.</p>
+              <p className="mt-1.5 text-xs text-muted">
+                {query
+                  ? `${formatNumber(products.length)} نتيجة مطابقة`
+                  : "اختار اللي يعجبك وضيفه للسلة في ثانية."}
+              </p>
             </div>
-            <span className="rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold text-muted">
+            <span className="border border-border px-3 py-1.5 text-[10px] font-bold tracking-[0.1em] text-muted">
               {formatNumber(products.length)} منتج
             </span>
           </div>
 
           {categories.length > 0 && (
-            <div className="mb-6 flex flex-wrap gap-2">
+            <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border py-3.5">
               <Link
                 href={`${base}#products`}
-                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
-                  !categoryFilter
-                    ? "text-white shadow-sm"
-                    : "border border-border bg-card text-muted hover:border-primary/30 hover:text-foreground"
+                className={`border-b-2 pb-1 text-[10px] font-bold tracking-[0.08em] transition-colors ${
+                  !categoryFilter && !query
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted hover:text-foreground"
                 }`}
-                style={!categoryFilter ? { backgroundColor: color } : undefined}
               >
-                <Boxes className="h-3.5 w-3.5" />
                 كل المنتجات
               </Link>
               {categories.map((category) => {
@@ -363,17 +378,12 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
                   <Link
                     key={category.id}
                     href={`${base}?category=${category.id}#products`}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                    className={`border-b-2 pb-1 text-[10px] font-bold tracking-[0.08em] transition-colors ${
                       active
-                        ? "text-white shadow-sm"
-                        : "border border-border bg-card text-muted hover:border-primary/30 hover:text-foreground"
+                        ? "border-primary text-foreground"
+                        : "border-transparent text-muted hover:text-foreground"
                     }`}
-                    style={active ? { backgroundColor: color } : undefined}
                   >
-                    {category.image && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={category.image} alt="" className="h-5 w-5 rounded-full object-cover" />
-                    )}
                     {category.name}
                   </Link>
                 );
@@ -382,27 +392,32 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
           )}
 
           {products.length === 0 ? (
-            <div className="rounded-[var(--store-radius,1.5rem)] border border-dashed border-border bg-card px-6 py-20 text-center">
-              <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-surface text-muted">
+            <div className="border border-dashed border-border bg-card px-6 py-20 text-center">
+              <span className="mx-auto grid h-16 w-16 place-items-center border border-border bg-surface text-muted">
                 <ShoppingBag className="h-7 w-7" />
               </span>
-              <h3 className="mt-4 text-lg font-extrabold text-foreground">لسه مفيش منتجات هنا</h3>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
-                {categoryFilter
-                  ? "القسم ده لسه بيتجهّز. جرّب تشوف باقي المنتجات."
-                  : "صاحب المتجر لسه بيجهّز المنتجات. ارجع تاني قريب إن شاء الله."}
+              <h3 className="store-heading mt-5 text-lg font-semibold text-foreground">
+                {query ? "مفيش نتائج مطابقة" : "لسه مفيش منتجات هنا"}
+              </h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
+                {query
+                  ? "جرّب كلمة بحث تانية أو شوف كل المنتجات."
+                  : categoryFilter
+                    ? "القسم ده لسه بيتجهّز. جرّب تشوف باقي المنتجات."
+                    : "صاحب المتجر لسه بيجهّز المنتجات. ارجع تاني قريب إن شاء الله."}
               </p>
-              {categoryFilter && (
+              {(query || categoryFilter) && (
                 <Link
                   href={`${base}#products`}
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white"
+                  className="mt-6 inline-flex items-center gap-1.5 border-b border-primary pb-1 text-[11px] font-bold text-foreground transition-colors hover:text-primary"
                 >
                   شوف كل المنتجات
+                  <ArrowLeft className="h-3.5 w-3.5" />
                 </Link>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+            <div className={`grid gap-x-3 gap-y-9 sm:gap-x-5 sm:gap-y-11 ${storeGridClass(config.gridCols)}`}>
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -410,86 +425,104 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
                   storeSlug={store.slug}
                   base={base}
                   currency={store.currency}
+                  cardStyle={config.cardStyle}
+                  align={config.productAlign}
                 />
               ))}
             </div>
           )}
         </section>
 
-        {/* Why us + steps */}
-        <section id="why-us" className="scroll-mt-24 border-t border-border bg-card">
-          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
-            <div className="mb-7 text-center">
-              <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">ليه تشتري من {store.name}؟</h2>
-              <p className="mx-auto mt-1 max-w-md text-xs text-muted">
-                بنهتم بتجربة الشراء من أول ما تختار لحد ما الطلب يوصل لباب البيت.
-              </p>
-            </div>
-            <div className="grid gap-3.5 sm:grid-cols-3">
-              {[
-                {
-                  icon: BadgeCheck,
-                  title: "منتجات أصلية",
-                  desc: "بنختار المنتجات بعناية ونتأكد من جودتها قبل ما توصلك.",
-                },
-                {
-                  icon: PackageCheck,
-                  title: "أسعار مناسبة",
-                  desc: "أسعار واضحة من غير مفاجآت، وعروض على منتجات مختارة.",
-                },
-                {
-                  icon: MessageCircle,
-                  title: "خدمة سريعة",
-                  desc: "فريقنا معاك على واتساب للرد على أي سؤال قبل وبعد الطلب.",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-[var(--store-radius,1rem)] border border-border bg-surface p-5 text-center"
-                >
-                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-                    <item.icon className="h-5 w-5" />
+        {config.showWhy && (
+          <section id="why-us" className="scroll-mt-28 border-t border-border bg-surface">
+            <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+              <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+                <div>
+                  <span className="store-eyebrow text-[10px] font-bold uppercase text-primary">
+                    The Promise
                   </span>
-                  <h3 className="mt-3 text-sm font-extrabold text-foreground">{item.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">{item.desc}</p>
+                  <h2 className="store-heading mt-3 text-2xl font-semibold leading-snug text-foreground sm:text-3xl">
+                    ليه تشتري من {store.name}؟
+                  </h2>
+                  <p className="mt-3 max-w-sm text-xs leading-relaxed text-muted sm:text-sm">
+                    بنهتم بتجربة الشراء من أول ما تختار لحد ما الطلب يوصل لباب البيت.
+                  </p>
+                  <Link
+                    href={`${base}#products`}
+                    className="mt-6 inline-flex items-center gap-2 border-b border-primary pb-1 text-[10px] font-bold tracking-[0.12em] text-foreground transition-colors hover:text-primary"
+                  >
+                    ابدأ التسوق
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-8 grid gap-3.5 sm:grid-cols-3">
-              {[
-                { step: "1", title: "اختار منتجاتك", desc: "ضيف اللي يعجبك للسلة." },
-                { step: "2", title: "أكد طلبك", desc: "اكتب بياناتك واختار المحافظة." },
-                { step: "3", title: "استلم وادفع", desc: "الشحن بيوصلك وبتدفع عند الاستلام." },
-              ].map((item) => (
-                <div
-                  key={item.step}
-                  className="flex items-center gap-3 rounded-[var(--store-radius,1rem)] border border-border bg-card p-4"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-sm font-extrabold text-white">
-                    {item.step}
-                  </span>
-                  <div>
-                    <div className="text-xs font-extrabold text-foreground">{item.title}</div>
-                    <div className="text-[10px] text-muted">{item.desc}</div>
-                  </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {[
+                    {
+                      icon: BadgeCheck,
+                      title: "منتجات أصلية",
+                      desc: "بنختار المنتجات بعناية ونتأكد من جودتها قبل ما توصلك.",
+                    },
+                    {
+                      icon: PackageCheck,
+                      title: "أسعار مناسبة",
+                      desc: "أسعار واضحة من غير مفاجآت، وعروض على منتجات مختارة.",
+                    },
+                    {
+                      icon: MessageCircle,
+                      title: "خدمة سريعة",
+                      desc: "فريقنا معاك على واتساب للرد على أي سؤال قبل وبعد الطلب.",
+                    },
+                  ].map((item, index) => (
+                    <div key={item.title} className="border-t border-foreground/15 pt-4">
+                      <div className="flex items-center justify-between">
+                        <span className="store-heading text-3xl font-semibold text-primary/70">
+                          0{index + 1}
+                        </span>
+                        <item.icon className="h-4 w-4 text-muted" />
+                      </div>
+                      <h3 className="mt-4 text-sm font-bold text-foreground">{item.title}</h3>
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted">{item.desc}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-[var(--store-radius,1.25rem)] border border-primary/20 bg-primary/5 p-5 text-center sm:flex-row sm:text-start">
-              <div>
-                <div className="text-sm font-extrabold text-foreground">جاهز تطلب دلوقتي؟</div>
-                <div className="text-xs text-muted">اختار منتجاتك وأكد الطلب في أقل من دقيقة.</div>
               </div>
-              <Link
-                href={`${base}#products`}
-                className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius,0.75rem)] bg-primary px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition-transform hover:-translate-y-0.5"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                ابدأ التسوق
-              </Link>
+
+              <div className="mt-12 grid gap-4 border-t border-border pt-8 sm:grid-cols-3">
+                {[
+                  { step: "1", title: "اختار منتجاتك", desc: "ضيف اللي يعجبك للسلة." },
+                  { step: "2", title: "أكد طلبك", desc: "اكتب بياناتك واختار المحافظة." },
+                  { step: "3", title: "استلم وادفع", desc: "الشحن بيوصلك وبتدفع عند الاستلام." },
+                ].map((item) => (
+                  <div key={item.step} className="flex items-center gap-3">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/40 text-[11px] font-bold text-primary">
+                      {item.step}
+                    </span>
+                    <div>
+                      <div className="text-xs font-bold text-foreground">{item.title}</div>
+                      <div className="text-[10px] text-muted">{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          </section>
+        )}
+
+        <section className="bg-[#0d0d0d] text-white">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-4 py-12 text-center sm:flex-row sm:px-6 sm:text-start lg:px-8">
+            <div>
+              <span className="store-eyebrow text-[10px] font-bold uppercase text-primary">Ready?</span>
+              <h2 className="store-heading mt-2 text-2xl font-semibold">جاهز تطلب دلوقتي؟</h2>
+              <p className="mt-1.5 text-xs text-white/55">اختار منتجاتك وأكد الطلب في أقل من دقيقة.</p>
+            </div>
+            <Link
+              href={`${base}#products`}
+              className="inline-flex items-center gap-2 rounded-[var(--store-btn-radius)] bg-primary px-7 py-3.5 text-[11px] font-bold tracking-[0.14em] text-white transition-opacity hover:opacity-90"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              ابدأ التسوق
+            </Link>
           </div>
         </section>
       </main>
@@ -505,6 +538,8 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
         }}
         base={base}
         categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+        footerStyle={config.footerStyle}
+        showNewsletter={config.showNewsletter}
       />
     </div>
   );

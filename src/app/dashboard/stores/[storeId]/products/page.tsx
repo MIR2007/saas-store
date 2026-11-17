@@ -42,8 +42,11 @@ const filters = [
 export default async function ProductsPage(props: PageProps<"/dashboard/stores/[storeId]/products">) {
   const session = await getSession();
   const { storeId } = await props.params;
-  const searchParams = await props.searchParams;
-  const filter = (searchParams as any)?.filter as string | undefined;
+  const searchParams = (await props.searchParams) as Record<
+    string,
+    string | string[] | undefined
+  >;
+  const filter = typeof searchParams.filter === "string" ? searchParams.filter : undefined;
 
   const store = await prisma.store.findFirst({ where: { id: storeId, userId: session!.userId } });
   if (!store) notFound();
@@ -72,7 +75,6 @@ export default async function ProductsPage(props: PageProps<"/dashboard/stores/[
     comparePrice: product.comparePrice,
     stock: product.stock,
     active: product.active,
-    shippingPrice: product.shippingPrice,
     category: product.category?.name || "",
     images: parseImages(product.images),
     options: parseOptions(product.options),

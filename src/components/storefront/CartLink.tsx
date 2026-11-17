@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
 export default function CartLink({ slug, base }: { slug: string; base?: string }) {
   const [count, setCount] = useState(0);
@@ -11,6 +11,8 @@ export default function CartLink({ slug, base }: { slug: string; base?: string }
     const raw = localStorage.getItem(`cart:${slug}`);
     try {
       const cart = raw ? JSON.parse(raw) : [];
+      // The cart lives in localStorage, so it can only be read after mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCount(Array.isArray(cart) ? cart.reduce((s, c) => s + (c.quantity || 0), 0) : 0);
     } catch {
       setCount(0);
@@ -20,12 +22,12 @@ export default function CartLink({ slug, base }: { slug: string; base?: string }
   return (
     <Link
       href={`${base ?? `/${slug}`}/cart`}
-      className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-bold text-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
+      aria-label="سلة المشتريات"
+      className="relative grid h-10 w-10 place-items-center text-foreground transition-colors hover:text-primary"
     >
-      <ShoppingCart className="h-4 w-4" />
-      <span className="hidden sm:inline">السلة</span>
+      <ShoppingBag className="h-[19px] w-[19px]" />
       {count > 0 && (
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-extrabold text-white">
+        <span className="absolute -end-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-primary px-1 text-[9px] font-extrabold leading-none text-white">
           {count}
         </span>
       )}

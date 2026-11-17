@@ -92,6 +92,22 @@ body {
 }
 
 /* ---------- Store themes ---------- */
+.store-theme {
+  font-family: var(--store-font, var(--font-tajawal)), Arial, sans-serif;
+}
+.store-heading {
+  font-family: var(--store-heading-font, var(--store-font, var(--font-tajawal))), Arial, sans-serif;
+}
+.store-eyebrow {
+  letter-spacing: 0.22em;
+}
+.store-hairline {
+  display: block;
+  height: 1px;
+  width: 2.25rem;
+  background: var(--primary);
+  opacity: 0.65;
+}
 .store-theme button.bg-primary,
 .store-theme a.bg-primary {
   border-radius: var(--store-btn-radius, 0.75rem);

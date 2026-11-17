@@ -2,17 +2,26 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { Minus, Plus, ShoppingBag } from "lucide-react";
 
 type OptionValue = { label: string; value: string; image?: string };
 type ProductOption = { name: string; type: "color" | "image" | "button"; values: OptionValue[] };
+
+export type CartProduct = {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  images?: string | null;
+  options?: string | null;
+};
 
 export default function AddToCartButton({
   product,
   storeSlug,
   base,
 }: {
-  product: any;
+  product: CartProduct;
   storeSlug: string;
   base?: string;
 }) {
@@ -51,7 +60,6 @@ export default function AddToCartButton({
       variant?: string;
       price: number;
       quantity: number;
-      shipping?: number;
       image?: string;
     }[] = raw ? JSON.parse(raw) : [];
     let image = "";
@@ -71,7 +79,6 @@ export default function AddToCartButton({
         variant,
         price: product.price,
         quantity: qty,
-        shipping: product.shippingPrice || 0,
         image,
       });
     localStorage.setItem(key, JSON.stringify(cart));
@@ -79,12 +86,12 @@ export default function AddToCartButton({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {options.map((option) => (
         <div key={option.name}>
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs font-extrabold text-foreground">{option.name}</span>
-            <span className="text-[11px] text-muted">{selected[option.name]}</span>
+          <div className="mb-2.5 flex items-center gap-2">
+            <span className="store-eyebrow text-[10px] font-bold uppercase text-muted">{option.name}</span>
+            <span className="text-[11px] font-semibold text-foreground">{selected[option.name]}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {option.values.map((value) => {
@@ -95,15 +102,15 @@ export default function AddToCartButton({
                     key={value.label}
                     type="button"
                     onClick={() => setSelected((prev) => ({ ...prev, [option.name]: value.label }))}
-                    className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-all ${
+                    className={`flex items-center gap-2 border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
                       active
-                        ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
-                        : "border-border bg-card text-foreground hover:border-primary/40"
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-card text-foreground hover:border-foreground/40"
                     }`}
                   >
                     <span
-                      className="h-5 w-5 rounded-full border border-black/10 shadow-inner"
-                      style={{ backgroundColor: value.value || "#d97706" }}
+                      className="h-4 w-4 rounded-full border border-black/10 shadow-inner"
+                      style={{ backgroundColor: value.value || "#b08d57" }}
                     />
                     {value.label}
                   </button>
@@ -115,10 +122,8 @@ export default function AddToCartButton({
                     key={value.label}
                     type="button"
                     onClick={() => setSelected((prev) => ({ ...prev, [option.name]: value.label }))}
-                    className={`overflow-hidden rounded-xl border text-start transition-all ${
-                      active
-                        ? "border-primary ring-2 ring-primary/20"
-                        : "border-border hover:border-primary/40"
+                    className={`overflow-hidden border text-start transition-colors ${
+                      active ? "border-foreground" : "border-border hover:border-foreground/40"
                     }`}
                   >
                     <span className="block h-16 w-16 overflow-hidden bg-surface">
@@ -140,10 +145,10 @@ export default function AddToCartButton({
                   key={value.label}
                   type="button"
                   onClick={() => setSelected((prev) => ({ ...prev, [option.name]: value.label }))}
-                  className={`min-w-10 rounded-xl border px-3 py-2 text-[11px] font-bold transition-all ${
+                  className={`min-w-10 border px-3 py-2 text-[11px] font-semibold transition-colors ${
                     active
-                      ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
-                      : "border-border bg-card text-foreground hover:border-primary/40"
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border bg-card text-foreground hover:border-foreground/40"
                   }`}
                 >
                   {value.label}
@@ -155,31 +160,31 @@ export default function AddToCartButton({
       ))}
 
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-        <div className="flex items-center justify-between overflow-hidden rounded-xl border border-border bg-card shadow-sm sm:w-36">
+        <div className="flex items-center justify-between border border-border bg-card sm:w-32">
           <button
             type="button"
             onClick={() => setQty(Math.max(1, qty - 1))}
             aria-label="تقليل الكمية"
-            className="grid h-11 w-11 place-items-center text-muted transition-colors hover:bg-surface hover:text-foreground"
+            className="grid h-12 w-10 place-items-center text-muted transition-colors hover:text-foreground"
           >
-            <Minus className="h-4 w-4" />
+            <Minus className="h-3.5 w-3.5" />
           </button>
-          <span className="text-sm font-extrabold text-foreground">{qty}</span>
+          <span className="text-sm font-bold text-foreground">{qty}</span>
           <button
             type="button"
             onClick={() => setQty(qty + 1)}
             aria-label="زيادة الكمية"
-            className="grid h-11 w-11 place-items-center text-muted transition-colors hover:bg-surface hover:text-foreground"
+            className="grid h-12 w-10 place-items-center text-muted transition-colors hover:text-foreground"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
         <button
           onClick={addToCart}
           disabled={product.stock <= 0}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white shadow-md shadow-black/10 transition-all hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-[var(--store-btn-radius)] bg-foreground px-6 py-3.5 text-[11px] font-bold tracking-[0.14em] text-background transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-foreground disabled:hover:text-background"
         >
-          <ShoppingCart className="h-4 w-4" />
+          <ShoppingBag className="h-4 w-4" />
           {product.stock <= 0 ? "نفذ المخزون" : "ضيف للسلة"}
         </button>
       </div>

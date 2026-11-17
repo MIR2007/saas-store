@@ -12,7 +12,6 @@ const updateSchema = z.object({
   categoryId: z.string().optional().nullable(),
   images: z.array(z.string()).optional(),
   options: z.string().optional(),
-  shippingPrice: z.number().nonnegative().optional(),
   active: z.boolean().optional(),
 });
 
@@ -55,7 +54,6 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeI
         ...("active" in data ? { active: data.active! } : {}),
         ...("images" in data ? { images: JSON.stringify(data.images || []) } : {}),
         ...("options" in data ? { options: data.options || "[]" } : {}),
-        ...("shippingPrice" in data ? { shippingPrice: data.shippingPrice ?? 0 } : {}),
       },
     });
     return NextResponse.json({ product: updated });

@@ -10,7 +10,6 @@ export type ExportProduct = {
   comparePrice: number | null;
   stock: number;
   active: boolean;
-  shippingPrice: number;
   category: string;
   images: string[];
   options: { name: string; type: string; values: { label: string; value: string; image?: string }[] }[];
@@ -53,7 +52,6 @@ export default function ProductExportButtons({
         comparePrice: product.comparePrice,
         stock: product.stock,
         active: product.active,
-        shippingPrice: product.shippingPrice,
         category: product.category,
         images: product.images,
         options: product.options,
@@ -74,7 +72,6 @@ export default function ProductExportButtons({
       "سعر قبل الخصم",
       "المخزون",
       "القسم",
-      "سعر الشحن",
       "الحالة",
       "الخيارات",
       "الصورة",
@@ -87,7 +84,6 @@ export default function ProductExportButtons({
       product.comparePrice ?? "",
       product.stock,
       product.category,
-      product.shippingPrice,
       product.active ? "نشط" : "مخفي",
       product.options
         .map((option) => `${option.name}: ${option.values.map((value) => value.label).join(" / ")}`)

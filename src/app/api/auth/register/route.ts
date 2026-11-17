@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
 import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { defaultShippingRates } from "@/lib/shipping";
+import { DEFAULT_STORE_COLOR, DEFAULT_STORE_THEME } from "@/lib/themes";
 import { z } from "zod";
 
 const schema = z.object({
@@ -67,8 +69,9 @@ export async function POST(req: Request) {
           slug: storeSlug,
           description: "",
           currency: "EGP",
-          themeColor: "#d97706",
-          theme: "aura",
+          themeColor: DEFAULT_STORE_COLOR,
+          theme: DEFAULT_STORE_THEME,
+          shippingRates: JSON.stringify(defaultShippingRates()),
           plan: "trial",
           planStatus: "active",
           planRenewsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Banknote, Check, MapPin, ShieldCheck, ShoppingBag, Tag, Truck, X } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { COUNTRIES, countryByName, EGYPT_PAYMENT_METHODS } from "@/lib/egypt";
+import { shippingRateFor } from "@/lib/shipping";
 import { inputClass, labelClass, secondaryBtn } from "@/lib/ui";
 
 type CartItem = {
@@ -14,7 +15,6 @@ type CartItem = {
   variant?: string;
   price: number;
   quantity: number;
-  shipping?: number;
   image?: string;
 };
 
@@ -37,6 +37,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [live, setLive] = useState(true);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
+  const [shippingRates, setShippingRates] = useState<Record<string, number>>({});
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
@@ -49,6 +50,8 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const raw = localStorage.getItem(`cart:${slug}`);
+    // The cart lives in localStorage, so it can only be read after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCart(raw ? JSON.parse(raw) : []);
     fetch(`/api/public/stores/${slug}`)
       .then((r) => r.json())
@@ -56,6 +59,7 @@ export default function CheckoutPage() {
         setCurrency(d.store?.currency || "EGP");
         setStoreName(d.store?.name || "");
         setFreeShippingThreshold(Number(d.store?.freeShippingThreshold) || 0);
+        setShippingRates(d.store?.shippingRates || {});
         setLive(d.store?.live !== false);
         if (d.store) {
           const host = window.location.hostname.toLowerCase();
@@ -68,7 +72,7 @@ export default function CheckoutPage() {
   }, [slug]);
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
-  const baseShipping = cart.reduce((s, c) => s + (c.shipping || 0) * c.quantity, 0);
+  const baseShipping = shippingRateFor(region, country, shippingRates);
   const freeShipping =
     freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
   const shippingTotal = freeShipping ? 0 : baseShipping;
@@ -167,17 +171,17 @@ export default function CheckoutPage() {
   if (!live) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-        <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
-          <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-amber-500/10 text-amber-600">
+        <div className="w-full max-w-sm border border-border bg-card p-8 text-center">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-amber-500/10 text-amber-600">
             <ShoppingBag className="h-8 w-8" />
           </span>
-          <h1 className="mt-4 text-xl font-extrabold text-foreground">المتجر غير متاح حاليًا</h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted">
+          <h1 className="store-heading mt-5 text-xl font-semibold text-foreground">المتجر غير متاح حاليًا</h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
             المتجر مش بيستقبل طلبات دلوقتي. جرّب تاني بعد شوية.
           </p>
           <Link
             href={`${base}` || "/"}
-            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white"
+            className="mt-6 inline-flex w-full items-center justify-center rounded-[var(--store-btn-radius)] bg-foreground px-6 py-3 text-sm font-bold text-background"
           >
             رجوع للمتجر
           </Link>
@@ -188,26 +192,27 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
-          <Link href={`${base}/cart`} className="flex items-center gap-1.5 text-sm font-bold text-muted hover:text-foreground">
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
+          <Link href={`${base}/cart`} className="flex items-center gap-2 text-sm font-bold text-muted hover:text-foreground">
             <span>←</span>
             العودة للسلة
           </Link>
-          <span className="text-sm font-extrabold text-foreground">{storeName || "إتمام الطلب"}</span>
+          <span className="store-heading text-sm font-semibold text-foreground">{storeName || "إتمام الطلب"}</span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-5">
-          <h1 className="text-2xl font-extrabold text-foreground">إتمام الطلب</h1>
-          <p className="mt-0.5 text-xs text-muted">املأ بيانات التوصيل وإحنا هنجهّز طلبك في أسرع وقت.</p>
+      <main className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-10">
+        <div className="mb-6">
+          <span className="store-eyebrow text-[10px] font-bold uppercase text-primary">Checkout</span>
+          <h1 className="store-heading mt-2 text-2xl font-semibold text-foreground sm:text-3xl">إتمام الطلب</h1>
+          <p className="mt-1 text-xs text-muted">املأ بيانات التوصيل وإحنا هنجهّز طلبك في أسرع وقت.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-5">
           <div className="space-y-5 lg:col-span-3">
-            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-extrabold text-foreground">
+            <section className="rounded-[var(--store-radius)] border border-border bg-card p-5 shadow-sm">
+              <h2 className="store-heading mb-4 flex items-center gap-2 text-base font-semibold text-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
                 بيانات التوصيل
               </h2>
@@ -265,6 +270,15 @@ export default function CheckoutPage() {
                     </select>
                   </div>
                 </div>
+                <div className="flex items-center justify-between gap-3 border border-dashed border-border bg-surface/60 px-3 py-2.5">
+                  <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
+                    <Truck className="h-3.5 w-3.5 text-primary" />
+                    شحن {country === "مصر" ? region : "دولي"}
+                  </span>
+                  <span className="text-xs font-bold text-foreground">
+                    {shippingTotal > 0 ? formatMoney(shippingTotal, currency) : "مجاني"}
+                  </span>
+                </div>
                 <div>
                   <label className={labelClass}>العنوان بالتفصيل</label>
                   <textarea
@@ -291,8 +305,8 @@ export default function CheckoutPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-extrabold text-foreground">
+            <section className="rounded-[var(--store-radius)] border border-border bg-card p-5 shadow-sm">
+              <h2 className="store-heading mb-4 flex items-center gap-2 text-base font-semibold text-foreground">
                 <Banknote className="h-4 w-4 text-primary" />
                 طريقة الدفع
               </h2>
@@ -306,7 +320,7 @@ export default function CheckoutPage() {
                       type="button"
                       disabled={disabled}
                       onClick={() => setPayment(method.id)}
-                      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-start transition-colors ${
+                      className={`flex w-full items-center gap-3 border px-4 py-3 text-start transition-colors ${
                         active
                           ? "border-primary bg-primary/5"
                           : "border-border bg-surface/60 hover:border-primary/30"
@@ -334,8 +348,8 @@ export default function CheckoutPage() {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
-              <h2 className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+            <div className="rounded-[var(--store-radius)] border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24">
+              <h2 className="store-heading flex items-center gap-2 text-base font-semibold text-foreground">
                 <ShoppingBag className="h-4 w-4 text-primary" />
                 ملخص الطلب
               </h2>
@@ -351,7 +365,7 @@ export default function CheckoutPage() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 rounded-xl border border-dashed border-border bg-surface/60 p-3">
+              <div className="mt-3 border border-dashed border-border bg-surface/60 p-3">
                 <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-foreground">
                   <Tag className="h-3.5 w-3.5 text-primary" />
                   كود الخصم
@@ -406,11 +420,14 @@ export default function CheckoutPage() {
                   <span className="font-semibold text-foreground">{formatMoney(subtotal, currency)}</span>
                 </div>
                 <div className="flex justify-between text-muted">
-                  <span>الشحن</span>
+                  <span>الشحن {country === "مصر" ? `(${region})` : "(دولي)"}</span>
                   <span className="font-semibold text-foreground">
                     {shippingTotal > 0 ? formatMoney(shippingTotal, currency) : "مجاني"}
                   </span>
                 </div>
+                <p className="text-[10px] leading-relaxed text-muted">
+                  الشحن مبلغ ثابت حسب المحافظة، ويتحسب مرة واحدة على الطلب.
+                </p>
                 {discount > 0 && (
                   <div className="flex justify-between font-semibold text-emerald-600 dark:text-emerald-400">
                     <span>الخصم</span>
@@ -420,23 +437,23 @@ export default function CheckoutPage() {
               </div>
 
               {remainingForFreeShipping > 0 && (
-                <div className="mt-2 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                <div className="mt-2 border border-amber-500/20 bg-amber-500/10 px-2.5 py-2 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                   باقي {formatMoney(remainingForFreeShipping, currency)} وتاخد شحن مجاني.
                 </div>
               )}
               {freeShipping && baseShipping > 0 && (
-                <div className="mt-2 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                <div className="mt-2 border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-2 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                   تم تفعيل الشحن المجاني 🎉
                 </div>
               )}
 
               <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
                 <span className="text-sm font-bold text-foreground">الإجمالي</span>
-                <span className="text-xl font-extrabold text-foreground">{formatMoney(total, currency)}</span>
+                <span className="store-heading text-2xl font-semibold text-foreground">{formatMoney(total, currency)}</span>
               </div>
 
               {error && (
-                <div className="mt-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                <div className="mt-3 border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs font-semibold text-rose-700 dark:text-rose-300">
                   {error}
                 </div>
               )}
@@ -444,12 +461,12 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-4 w-full rounded-xl bg-primary py-3 text-sm font-extrabold text-white shadow-md shadow-black/10 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-4 w-full rounded-[var(--store-btn-radius)] bg-foreground py-3.5 text-[11px] font-bold tracking-[0.14em] text-background transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "بنأكد الطلب..." : "تأكيد الطلب"}
               </button>
 
-              <div className="mt-4 space-y-2 border-t border-border pt-3 text-[11px] text-muted">
+              <div className="mt-4 space-y-2 border-t border-border pt-3 text-[10px] text-muted">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-500" />
                   بياناتك في أمان ومش بنشاركها.

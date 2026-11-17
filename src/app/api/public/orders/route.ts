@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeCouponCode, validateCoupon } from "@/lib/coupons";
 import { storeIsLive } from "@/lib/store-status";
 import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { parseShippingRates, shippingRateFor } from "@/lib/shipping";
 import { z } from "zod";
 
 const itemSchema = z.object({
@@ -65,18 +66,18 @@ export async function POST(req: Request) {
       }
     }
 
-    // Compute subtotal and shipping (store-level free shipping threshold).
+    // Shipping is a fixed store-level amount for the selected governorate.
     let subtotal = 0;
-    let shipping = 0;
     const orderItems = items.map((item) => {
       const p = productMap.get(item.productId)!;
       subtotal += p.price * item.quantity;
-      shipping += (p.shippingPrice || 0) * item.quantity;
       const name = item.variant ? `${p.name} (${item.variant})` : p.name;
       return { productId: p.id, name, price: p.price, quantity: item.quantity };
     });
     subtotal = Math.round(subtotal * 100) / 100;
 
+    const shippingRates = parseShippingRates(store.shippingRates);
+    let shipping = shippingRateFor(customerRegion, customerCountry, shippingRates);
     if (store.freeShippingThreshold > 0 && subtotal >= store.freeShippingThreshold) {
       shipping = 0;
     }

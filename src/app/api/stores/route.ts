@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { defaultShippingRates } from "@/lib/shipping";
+import { DEFAULT_STORE_COLOR, DEFAULT_STORE_THEME } from "@/lib/themes";
 import { z } from "zod";
 
 const schema = z.object({
@@ -45,7 +47,9 @@ export async function POST(req: Request) {
         description: description || "",
         userId: session.userId,
         currency: "EGP",
-        themeColor: "#d97706",
+        theme: DEFAULT_STORE_THEME,
+        themeColor: DEFAULT_STORE_COLOR,
+        shippingRates: JSON.stringify(defaultShippingRates()),
       },
     });
     return NextResponse.json({ store });

@@ -132,7 +132,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
               comparePrice: product.comparePrice,
               stock: product.stock,
               active: product.active,
-              shippingPrice: product.shippingPrice,
               categoryId,
               images: JSON.stringify(product.images),
               options: product.options,

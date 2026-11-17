@@ -7,7 +7,6 @@ export type ImportedProduct = {
   comparePrice: number | null;
   stock: number;
   active: boolean;
-  shippingPrice: number;
   category: string;
   images: string[];
   options: string;
@@ -36,7 +35,6 @@ type RawFields = {
   comparePrice?: unknown;
   stock?: unknown;
   active?: unknown;
-  shippingPrice?: unknown;
   category?: unknown;
   images?: unknown;
   options?: unknown;
@@ -217,7 +215,6 @@ function parseItem(fields: RawFields, row: number): { product?: ImportedProduct;
   if (price === null || price < 0) return { error: "السعر غير صالح" };
 
   const comparePrice = toOptionalNumber(fields.comparePrice);
-  const shippingPrice = toNumber(fields.shippingPrice);
   const id = toStringValue(fields.id);
 
   return {
@@ -230,7 +227,6 @@ function parseItem(fields: RawFields, row: number): { product?: ImportedProduct;
       comparePrice: comparePrice !== null && comparePrice >= 0 ? comparePrice : null,
       stock: toInteger(fields.stock),
       active: toActive(fields.active),
-      shippingPrice: shippingPrice !== null && shippingPrice >= 0 ? shippingPrice : 0,
       category: toStringValue(fields.category),
       images: toImages(fields.images),
       options: toOptions(fields.options),
@@ -283,7 +279,6 @@ export function parseJsonProducts(content: string): ImportParseResult {
         comparePrice: item.comparePrice,
         stock: item.stock,
         active: item.active,
-        shippingPrice: item.shippingPrice,
         category,
         images: item.images,
         options: item.options,
@@ -396,13 +391,6 @@ const HEADER_ALIASES: Record<string, keyof RawFields> = {
   التصنيف: "category",
   category: "category",
   "category name": "category",
-  "سعر الشحن": "shippingPrice",
-  "تكلفة الشحن": "shippingPrice",
-  الشحن: "shippingPrice",
-  "shipping price": "shippingPrice",
-  "shipping cost": "shippingPrice",
-  shippingprice: "shippingPrice",
-  shipping: "shippingPrice",
   الحالة: "active",
   active: "active",
   status: "active",

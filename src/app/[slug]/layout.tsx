@@ -1,7 +1,12 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { getStoreTheme, storeThemeVars } from "@/lib/themes";
+import {
+  getStoreTheme,
+  parseThemeConfig,
+  storeFontHref,
+  storeThemeVars,
+} from "@/lib/themes";
 import { storeIsLive } from "@/lib/store-status";
 import { PLATFORM_URL, storePublicUrl } from "@/lib/domains";
 
@@ -76,17 +81,26 @@ export default async function StoreLayout(props: LayoutProps<"/[slug]">) {
   const { slug } = await props.params;
   const store = await prisma.store.findUnique({
     where: { slug },
-    select: { theme: true, themeColor: true },
+    select: { theme: true, themeColor: true, themeConfig: true },
   });
 
   const theme = getStoreTheme(store?.theme);
-  const style = storeThemeVars(store?.theme, store?.themeColor) as CSSProperties;
+  const config = parseThemeConfig(store?.themeConfig);
+  const style = storeThemeVars(store?.theme, store?.themeColor, config) as CSSProperties;
+  const fontHref = storeFontHref(config);
 
   return (
     <div
       className={`store-theme ${theme.dark ? "dark" : ""}`}
       style={style}
     >
+      {fontHref && (
+        <>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link rel="stylesheet" href={fontHref} />
+        </>
+      )}
       {props.children}
     </div>
   );

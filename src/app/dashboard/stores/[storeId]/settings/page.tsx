@@ -18,7 +18,9 @@ import {
   Wallet,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import { CURRENCIES } from "@/lib/format";
+import { CURRENCIES, currencySymbol } from "@/lib/format";
+import { EGYPT_GOVERNORATES } from "@/lib/egypt";
+import { OTHER_REGIONS_KEY, shippingRatesWithDefaults } from "@/lib/shipping";
 import { cardClass, dangerBtn, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
 import { storePublicUrl } from "@/lib/domains";
 
@@ -44,6 +46,8 @@ export default function StoreSettingsPage() {
   const [themeColor, setThemeColor] = useState("#d97706");
   const [currency, setCurrency] = useState("EGP");
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
+  const [shippingRates, setShippingRates] = useState<Record<string, number>>({});
+  const [bulkShipping, setBulkShipping] = useState("");
   const [active, setActive] = useState(true);
   const [customDomain, setCustomDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,6 +71,7 @@ export default function StoreSettingsPage() {
           setThemeColor(s.themeColor || "#d97706");
           setCurrency(s.currency || "EGP");
           setFreeShippingThreshold(Number(s.freeShippingThreshold) || 0);
+          setShippingRates(shippingRatesWithDefaults(s.shippingRates));
           setActive(s.active);
           setCustomDomain(s.customDomainStatus === "active" ? s.customDomain : null);
         }
@@ -113,6 +118,7 @@ export default function StoreSettingsPage() {
           logo,
           phone,
           freeShippingThreshold: Number(freeShippingThreshold) || 0,
+          shippingRates,
         }),
       });
       const data = await res.json();
@@ -318,6 +324,98 @@ export default function StoreSettingsPage() {
           <p className="mt-1.5 text-[11px] text-muted">
             كل الأسعار في المتجر هتظهر بالعملة دي. الجنيه المصري هو الافتراضي.
           </p>
+        </section>
+
+        <section className={`${cardClass} p-6`}>
+          <div className="mb-2 flex items-center gap-2">
+            <Truck className="h-5 w-5 text-primary" />
+            <h2 className="font-extrabold text-foreground">الشحن حسب المحافظة</h2>
+          </div>
+          <p className="mb-5 text-[11px] leading-relaxed text-muted">
+            حدّد مبلغ الشحن الثابت لكل محافظة. المبلغ بيتحسب مرة واحدة على الطلب كله، مش على كل منتج.
+            سيبه 0 لو عايز شحن مجاني للمحافظة دي.
+          </p>
+
+          <div className="mb-5 flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-border bg-surface/60 p-3">
+            <div className="min-w-36 flex-1">
+              <label className={labelClass}>تطبيق مبلغ على كل المحافظات</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={bulkShipping}
+                  onChange={(e) => setBulkShipping(e.target.value)}
+                  placeholder="0"
+                  className={inputClass}
+                  dir="ltr"
+                />
+                <span className="text-xs font-bold text-muted">{currencySymbol(currency)}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const value = Number(bulkShipping) || 0;
+                setShippingRates((prev) => {
+                  const next: Record<string, number> = { ...prev };
+                  for (const governorate of EGYPT_GOVERNORATES) next[governorate] = value;
+                  return next;
+                });
+              }}
+              className={secondaryBtn}
+            >
+              تطبيق على الكل
+            </button>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {EGYPT_GOVERNORATES.map((governorate) => (
+              <label
+                key={governorate}
+                className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface/50 px-3 py-2"
+              >
+                <span className="text-xs font-bold text-foreground">{governorate}</span>
+                <span className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={shippingRates[governorate] ?? 0}
+                    onChange={(e) =>
+                      setShippingRates((prev) => ({
+                        ...prev,
+                        [governorate]: Math.max(0, Number(e.target.value) || 0),
+                      }))
+                    }
+                    className="w-20 rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-bold text-foreground outline-none focus:border-primary"
+                    dir="ltr"
+                  />
+                  <span className="w-8 text-[9px] font-semibold text-muted">{currencySymbol(currency)}</span>
+                </span>
+              </label>
+            ))}
+            <label className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface/50 px-3 py-2">
+              <span className="text-xs font-bold text-foreground">دول أخرى</span>
+              <span className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={shippingRates[OTHER_REGIONS_KEY] ?? 0}
+                  onChange={(e) =>
+                    setShippingRates((prev) => ({
+                      ...prev,
+                      [OTHER_REGIONS_KEY]: Math.max(0, Number(e.target.value) || 0),
+                    }))
+                  }
+                  className="w-20 rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-bold text-foreground outline-none focus:border-primary"
+                  dir="ltr"
+                />
+                <span className="w-8 text-[9px] font-semibold text-muted">{currencySymbol(currency)}</span>
+              </span>
+            </label>
+          </div>
         </section>
 
         <section className={`${cardClass} p-6`}>

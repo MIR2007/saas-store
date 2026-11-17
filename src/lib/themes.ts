@@ -21,6 +21,23 @@ export type StoreTheme = {
 
 export const STORE_THEMES: StoreTheme[] = [
   {
+    id: "atelier",
+    name: "أتيليه",
+    tag: "ATELIER",
+    desc: "أسود وأبيض وذهبي — طابع الأزياء الفاخرة",
+    primary: "#b08d57",
+    primaryDark: "#8f6f3f",
+    surface: "#f7f6f3",
+    card: "#ffffff",
+    foreground: "#111111",
+    muted: "#6b6b6b",
+    border: "#e8e5df",
+    radius: "0",
+    buttonRadius: "0",
+    pattern: "none",
+    swatches: ["#b08d57", "#111111", "#f7f6f3"],
+  },
+  {
     id: "aura",
     name: "أورا",
     tag: "AURA",
@@ -228,6 +245,9 @@ export const STORE_THEMES: StoreTheme[] = [
   },
 ];
 
+export const DEFAULT_STORE_THEME = "atelier";
+export const DEFAULT_STORE_COLOR = "#b08d57";
+
 const LEGACY_THEMES: Record<string, string> = {
   modern: "aura",
   fashion: "bloom",
@@ -240,9 +260,9 @@ const LEGACY_THEMES: Record<string, string> = {
 };
 
 export function resolveThemeId(id?: string | null) {
-  if (!id) return "aura";
+  if (!id) return DEFAULT_STORE_THEME;
   if (STORE_THEMES.some((theme) => theme.id === id)) return id;
-  return LEGACY_THEMES[id] || "aura";
+  return LEGACY_THEMES[id] || DEFAULT_STORE_THEME;
 }
 
 export function getStoreTheme(id?: string | null) {
@@ -250,10 +270,232 @@ export function getStoreTheme(id?: string | null) {
   return STORE_THEMES.find((theme) => theme.id === resolved) || STORE_THEMES[0];
 }
 
+export type StoreThemeFont = "tajawal" | "cairo" | "almarai" | "rubik" | "jost" | "cormorant";
+
+export type StoreThemeColors = {
+  primary?: string;
+  primaryDark?: string;
+  surface?: string;
+  card?: string;
+  foreground?: string;
+  muted?: string;
+  border?: string;
+};
+
+export type StoreThemeConfig = {
+  headerStyle: "centered" | "split";
+  cardStyle: "minimal" | "bordered" | "elevated";
+  productAlign: "center" | "start";
+  gridCols: 2 | 3 | 4;
+  footerStyle: "dark" | "light";
+  showHero: boolean;
+  showCategories: boolean;
+  showTrust: boolean;
+  showWhy: boolean;
+  showNewsletter: boolean;
+  announcementEnabled: boolean;
+  announcement: string;
+  font: StoreThemeFont;
+  headingFont: StoreThemeFont;
+  radius: string;
+  buttonRadius: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroBadge: string;
+  heroImage: string;
+  colors: StoreThemeColors;
+};
+
+export const DEFAULT_THEME_CONFIG: StoreThemeConfig = {
+  headerStyle: "centered",
+  cardStyle: "minimal",
+  productAlign: "center",
+  gridCols: 4,
+  footerStyle: "dark",
+  showHero: true,
+  showCategories: true,
+  showTrust: true,
+  showWhy: true,
+  showNewsletter: true,
+  announcementEnabled: true,
+  announcement: "",
+  font: "tajawal",
+  headingFont: "tajawal",
+  radius: "",
+  buttonRadius: "",
+  heroTitle: "",
+  heroSubtitle: "",
+  heroBadge: "",
+  heroImage: "",
+  colors: {},
+};
+
+export const STORE_FONTS: {
+  id: StoreThemeFont;
+  name: string;
+  hint: string;
+  google?: string;
+  stack: string;
+}[] = [
+  {
+    id: "tajawal",
+    name: "Tajawal — تجوال",
+    hint: "خط المنصة الافتراضي",
+    stack: "var(--font-tajawal), Arial, sans-serif",
+  },
+  {
+    id: "cairo",
+    name: "Cairo — القاهرة",
+    hint: "عربي عصري وواضح",
+    google: "Cairo:wght@400;500;600;700;800",
+    stack: "'Cairo', var(--font-tajawal), sans-serif",
+  },
+  {
+    id: "almarai",
+    name: "Almarai — المراعي",
+    hint: "عربي أنيق للمتاجر الراقية",
+    google: "Almarai:wght@400;700;800",
+    stack: "'Almarai', var(--font-tajawal), sans-serif",
+  },
+  {
+    id: "rubik",
+    name: "Rubik — روبيك",
+    hint: "عربي حديث بشخصية قوية",
+    google: "Rubik:wght@400;500;600;700",
+    stack: "'Rubik', var(--font-tajawal), sans-serif",
+  },
+  {
+    id: "jost",
+    name: "Jost — لاتيني",
+    hint: "للعناوين والأرقام اللاتينية",
+    google: "Jost:wght@400;500;600;700",
+    stack: "'Jost', var(--font-tajawal), sans-serif",
+  },
+  {
+    id: "cormorant",
+    name: "Cormorant — لاتيني فاخر",
+    hint: "لمسة إيديتوريال للعلامات الفاخرة",
+    google: "Cormorant+Garamond:wght@500;600;700",
+    stack: "'Cormorant Garamond', var(--font-tajawal), serif",
+  },
+];
+
 function normalizeHex(value?: string | null) {
   if (!value) return null;
   const hex = value.trim();
   return /^#[0-9a-fA-F]{6}$/.test(hex) || /^#[0-9a-fA-F]{3}$/.test(hex) ? hex : null;
+}
+
+const RADIUS_VALUES = new Set([
+  "",
+  "0",
+  "0.125rem",
+  "0.25rem",
+  "0.375rem",
+  "0.5rem",
+  "0.75rem",
+  "1rem",
+  "1.25rem",
+  "1.5rem",
+  "1.75rem",
+  "2rem",
+  "2.5rem",
+  "9999px",
+]);
+
+function normalizeRadius(value: unknown) {
+  return typeof value === "string" && RADIUS_VALUES.has(value) ? value : "";
+}
+
+function isFont(value: unknown): value is StoreThemeFont {
+  return STORE_FONTS.some((font) => font.id === value);
+}
+
+function text(value: unknown, max: number) {
+  return typeof value === "string" ? value.slice(0, max) : "";
+}
+
+export function parseThemeConfig(
+  raw?: string | StoreThemeConfig | null
+): StoreThemeConfig {
+  let parsed: Record<string, unknown> = {};
+  if (typeof raw === "string") {
+    try {
+      const value = JSON.parse(raw || "{}");
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        parsed = value as Record<string, unknown>;
+      }
+    } catch {
+      parsed = {};
+    }
+  } else if (raw && typeof raw === "object") {
+    parsed = raw as Record<string, unknown>;
+  }
+
+  const rawColors =
+    parsed.colors && typeof parsed.colors === "object" && !Array.isArray(parsed.colors)
+      ? (parsed.colors as Record<string, unknown>)
+      : {};
+  const colors: StoreThemeColors = {};
+  for (const key of [
+    "primary",
+    "primaryDark",
+    "surface",
+    "card",
+    "foreground",
+    "muted",
+    "border",
+  ] as const) {
+    const hex = normalizeHex(typeof rawColors[key] === "string" ? rawColors[key] : null);
+    if (hex) colors[key] = hex;
+  }
+
+  return {
+    headerStyle: parsed.headerStyle === "split" ? "split" : "centered",
+    cardStyle:
+      parsed.cardStyle === "bordered" || parsed.cardStyle === "elevated"
+        ? parsed.cardStyle
+        : "minimal",
+    productAlign: parsed.productAlign === "start" ? "start" : "center",
+    gridCols: parsed.gridCols === 2 || parsed.gridCols === 3 ? parsed.gridCols : 4,
+    footerStyle: parsed.footerStyle === "light" ? "light" : "dark",
+    showHero: parsed.showHero !== false,
+    showCategories: parsed.showCategories !== false,
+    showTrust: parsed.showTrust !== false,
+    showWhy: parsed.showWhy !== false,
+    showNewsletter: parsed.showNewsletter !== false,
+    announcementEnabled: parsed.announcementEnabled !== false,
+    announcement: text(parsed.announcement, 200),
+    font: isFont(parsed.font) ? parsed.font : DEFAULT_THEME_CONFIG.font,
+    headingFont: isFont(parsed.headingFont)
+      ? parsed.headingFont
+      : DEFAULT_THEME_CONFIG.headingFont,
+    radius: normalizeRadius(parsed.radius),
+    buttonRadius: normalizeRadius(parsed.buttonRadius),
+    heroTitle: text(parsed.heroTitle, 120),
+    heroSubtitle: text(parsed.heroSubtitle, 260),
+    heroBadge: text(parsed.heroBadge, 60),
+    heroImage: text(parsed.heroImage, 600),
+    colors,
+  };
+}
+
+export function fontStack(id?: string | null) {
+  const font = STORE_FONTS.find((item) => item.id === id) || STORE_FONTS[0];
+  return font.stack;
+}
+
+/** Google Fonts stylesheet for the selected store fonts (empty when unnecessary). */
+export function storeFontHref(config: StoreThemeConfig) {
+  const families = new Set<string>();
+  for (const id of [config.font, config.headingFont]) {
+    const font = STORE_FONTS.find((item) => item.id === id);
+    if (font?.google) families.add(font.google);
+  }
+  if (families.size === 0) return "";
+  return `https://fonts.googleapis.com/css2?${Array.from(families)
+    .map((family) => `family=${family}`)
+    .join("&")}&display=swap`;
 }
 
 function shade(hex: string, amount: number) {
@@ -276,25 +518,37 @@ function shade(hex: string, amount: number) {
 /** CSS variables that re-skin the whole storefront for the chosen theme. */
 export function storeThemeVars(
   themeId?: string | null,
-  themeColor?: string | null
+  themeColor?: string | null,
+  rawConfig?: string | StoreThemeConfig | null
 ): Record<string, string> {
   const theme = getStoreTheme(themeId);
+  const config = parseThemeConfig(rawConfig);
   const custom = normalizeHex(themeColor);
-  const primary = custom || theme.primary;
+  const colors = config.colors;
+  const primary = colors.primary || custom || theme.primary;
   const primaryDark =
-    primary.toLowerCase() === theme.primary.toLowerCase()
+    colors.primaryDark ||
+    (primary.toLowerCase() === theme.primary.toLowerCase()
       ? theme.primaryDark
-      : shade(primary, 0.16);
+      : shade(primary, 0.16));
 
   return {
     "--primary": primary,
     "--primary-dark": primaryDark,
-    "--surface": theme.surface,
-    "--card": theme.card,
-    "--foreground": theme.foreground,
-    "--muted": theme.muted,
-    "--border": theme.border,
-    "--store-radius": theme.radius,
-    "--store-btn-radius": theme.buttonRadius,
+    "--surface": colors.surface || theme.surface,
+    "--card": colors.card || theme.card,
+    "--foreground": colors.foreground || theme.foreground,
+    "--muted": colors.muted || theme.muted,
+    "--border": colors.border || theme.border,
+    "--store-radius": config.radius || theme.radius,
+    "--store-btn-radius": config.buttonRadius || theme.buttonRadius,
+    "--store-font": fontStack(config.font),
+    "--store-heading-font": fontStack(config.headingFont),
   };
+}
+
+export function storeGridClass(cols: StoreThemeConfig["gridCols"]) {
+  if (cols === 2) return "grid-cols-2";
+  if (cols === 3) return "grid-cols-2 md:grid-cols-3";
+  return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 }

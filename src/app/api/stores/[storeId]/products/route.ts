@@ -12,7 +12,6 @@ const schema = z.object({
   categoryId: z.string().optional().nullable(),
   images: z.array(z.string()).optional(),
   options: z.string().optional(),
-  shippingPrice: z.number().nonnegative().optional(),
   active: z.boolean().optional(),
 });
 
@@ -58,7 +57,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
         categoryId: data.categoryId || null,
         images: JSON.stringify(data.images || []),
         options: data.options || "[]",
-        shippingPrice: data.shippingPrice ?? 0,
         active: data.active ?? true,
       },
     });

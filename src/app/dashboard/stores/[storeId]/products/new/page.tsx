@@ -14,7 +14,7 @@ export default function NewProductPage() {
   const storeId = params.storeId as string;
   const router = useRouter();
 
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [currency, setCurrency] = useState("EGP");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -24,7 +24,6 @@ export default function NewProductPage() {
   const [categoryId, setCategoryId] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<ProductOption[]>([]);
-  const [shippingPrice, setShippingPrice] = useState("");
   const [active, setActive] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -103,7 +102,6 @@ export default function NewProductPage() {
               }))
               .filter((option) => option.name && option.values.length)
           ),
-          shippingPrice: shippingPrice ? Number(shippingPrice) : 0,
           active,
         }),
       });
@@ -204,22 +202,10 @@ export default function NewProductPage() {
                 />
                 <p className="mt-1.5 text-[11px] text-muted">لو خلص المخزون، المنتج هيظهر «نفذ» ومش هيتضاف للسلة.</p>
               </div>
-              <div>
-                <label className={labelClass}>
-                  سعر الشحن <span className="font-normal text-muted">(اختياري)</span>
-                </label>
-                <input
-                  type="number"
-                  value={shippingPrice}
-                  onChange={(e) => setShippingPrice(e.target.value)}
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  className={inputClass}
-                />
-                <p className="mt-1.5 text-[11px] text-muted">بيتضاف لسعر الشحن الإجمالي في صفحة الشراء.</p>
-              </div>
             </div>
+            <p className="mt-4 rounded-xl border border-border bg-surface/60 px-3 py-2.5 text-[11px] leading-relaxed text-muted">
+              الشحن مش مرتبط بالمنتج. هيتحدد مبلغ ثابت لكل محافظة من إعدادات المتجر، ويتحسب مرة واحدة على الطلب.
+            </p>
           </section>
 
           <section className={`${cardClass} p-6`}>

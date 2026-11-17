@@ -36,8 +36,8 @@ model Store {
   description String     @default("")
   logo        String     @default("")
   phone       String     @default("")
-  themeColor  String     @default("#d97706")
-  theme       String     @default("modern")
+  themeColor  String     @default("#b08d57")
+  theme       String     @default("atelier")
   currency    String     @default("EGP")
   walletBalance Float    @default(0)
   active      Boolean    @default(true)
@@ -46,6 +46,8 @@ model Store {
   planStatus  String     @default("active")
   planRenewsAt DateTime?
   freeShippingThreshold Float @default(0)
+  shippingRates String     @default("{}")
+  themeConfig  String     @default("{}")
   customDomain       String?  @unique
   customDomainStatus String   @default("none")
   domainToken        String   @default("")
@@ -81,7 +83,6 @@ model Product {
   comparePrice Float?
   images       String      @default("[]")
   options      String      @default("[]")
-  shippingPrice Float      @default(0)
   stock        Int         @default(0)
   active       Boolean     @default(true)
   createdAt    DateTime    @default(now())
