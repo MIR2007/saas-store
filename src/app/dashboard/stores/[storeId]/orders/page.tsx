@@ -19,6 +19,15 @@ const filters = [
   { key: "cancelled", label: "ملغي" },
 ] as const;
 
+function firstImage(raw: string | undefined | null) {
+  try {
+    const images = JSON.parse(raw || "[]");
+    return Array.isArray(images) ? images[0] || "" : "";
+  } catch {
+    return "";
+  }
+}
+
 export default async function OrdersPage(props: PageProps<"/dashboard/stores/[storeId]/orders">) {
   const session = await getSession();
   const { storeId } = await props.params;
@@ -32,7 +41,7 @@ export default async function OrdersPage(props: PageProps<"/dashboard/stores/[st
     prisma.order.findMany({
       where: { storeId },
       orderBy: { createdAt: "desc" },
-      include: { items: true },
+      include: { items: { include: { product: { select: { images: true } } } } },
     }),
     prisma.order.aggregate({ where: { storeId }, _sum: { total: true } }),
   ]);
@@ -136,11 +145,27 @@ export default async function OrdersPage(props: PageProps<"/dashboard/stores/[st
                         </div>
                       </div>
                     </td>
-                    <td className="max-w-[220px] px-5 py-3.5">
-                      <div className="truncate text-muted">{order.items[0]?.name || "—"}</div>
-                      <div className="text-[10px] text-muted">
-                        {order.items.reduce((s, it) => s + it.quantity, 0)} قطعة
-                        {order.items.length > 1 && ` · ${order.items.length} منتجات`}
+                    <td className="max-w-[240px] px-5 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-surface text-muted">
+                          {firstImage(order.items[0]?.product?.images) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={firstImage(order.items[0]?.product?.images)}
+                              alt={order.items[0]?.name || ""}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ShoppingBag className="h-4 w-4" />
+                          )}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate text-muted">{order.items[0]?.name || "—"}</div>
+                          <div className="text-[10px] text-muted">
+                            {order.items.reduce((s, it) => s + it.quantity, 0)} قطعة
+                            {order.items.length > 1 && ` · ${order.items.length} منتجات`}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-5 py-3.5 font-bold text-foreground">

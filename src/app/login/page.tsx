@@ -35,7 +35,8 @@ function LoginForm() {
         setError(data.error || "مش قادرين نسجّل دخولك");
         return;
       }
-      router.push(next);
+      const dest = next && next !== "/dashboard" ? next : data.redirect || next;
+      router.push(dest);
       router.refresh();
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");

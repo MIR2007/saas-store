@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
-import CartLink from "@/components/storefront/CartLink";
+import StoreHeader from "@/components/storefront/StoreHeader";
+import StoreFooter from "@/components/storefront/StoreFooter";
 import { formatMoney } from "@/lib/format";
 import { getStoreBase } from "@/lib/store-url";
 import { getStoreTheme } from "@/lib/themes";
@@ -12,14 +13,22 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
   const { slug, productId } = await props.params;
   const store = await prisma.store.findUnique({ where: { slug } });
   if (!store || !store.active) notFound();
-  const product = await prisma.product.findFirst({
-    where: { id: productId, storeId: store.id, active: true },
-    include: { category: true },
-  });
+
+  const [product, categories] = await Promise.all([
+    prisma.product.findFirst({
+      where: { id: productId, storeId: store.id, active: true },
+      include: { category: true },
+    }),
+    prisma.category.findMany({ where: { storeId: store.id }, orderBy: { name: "asc" } }),
+  ]);
   if (!product) notFound();
 
   let images: string[] = [];
-  try { images = JSON.parse(product.images || "[]"); } catch { images = []; }
+  try {
+    images = JSON.parse(product.images || "[]");
+  } catch {
+    images = [];
+  }
 
   const theme = getStoreTheme(store.theme);
   const color = store.themeColor || theme.primary;
@@ -29,30 +38,24 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
 
   return (
     <div className="min-h-screen bg-surface">
-      <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href={`${base}` || "/"} className="flex items-center gap-2.5">
-            <span
-              className="grid h-9 w-9 place-items-center rounded-[var(--store-radius,1rem)] text-sm font-extrabold text-white"
-              style={{ backgroundColor: color }}
-            >
-              {store.name.charAt(0)}
-            </span>
-            <span className="text-sm font-extrabold text-foreground">{store.name}</span>
-          </Link>
-          <CartLink slug={store.slug} base={base} />
-        </div>
-      </header>
+      <StoreHeader
+        store={{ name: store.name, slug: store.slug, logo: store.logo, phone: store.phone }}
+        base={base}
+        categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+      />
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted">
-          <Link href={`${base}` || "/"} className="transition-colors hover:text-foreground">
+          <Link href={base || "/"} className="transition-colors hover:text-foreground">
             المتجر
           </Link>
           <ChevronLeft className="h-3.5 w-3.5" />
           {product.category && (
             <>
-              <Link href={`${base}?category=${product.category.id}`} className="transition-colors hover:text-foreground">
+              <Link
+                href={`${base}?category=${product.category.id}#products`}
+                className="transition-colors hover:text-foreground"
+              >
                 {product.category.name}
               </Link>
               <ChevronLeft className="h-3.5 w-3.5" />
@@ -63,7 +66,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
 
         <div className="grid gap-6 md:grid-cols-2 md:gap-10">
           <div>
-            <div className="relative aspect-square overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+            <div className="relative aspect-square overflow-hidden rounded-[var(--store-radius,1.5rem)] border border-border bg-card shadow-sm">
               {images[0] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={images[0]} alt={product.name} className="h-full w-full object-cover" />
@@ -78,10 +81,10 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
             </div>
             {images.length > 1 && (
               <div className="mt-3 grid grid-cols-4 gap-2">
-                {images.slice(0, 4).map((img, i) => (
+                {images.slice(0, 4).map((img, index) => (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    key={i}
+                    key={index}
                     src={img}
                     alt=""
                     className="aspect-square w-full rounded-xl border border-border object-cover"
@@ -112,20 +115,34 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
               </span>
             </div>
 
-            <h1 className="mt-4 text-2xl font-extrabold leading-tight text-foreground sm:text-3xl">{product.name}</h1>
+            <h1 className="mt-4 text-2xl font-extrabold leading-tight text-foreground sm:text-3xl">
+              {product.name}
+            </h1>
 
             <div className="mt-4 flex flex-wrap items-baseline gap-2.5">
-              <span className="text-3xl font-extrabold text-primary">{formatMoney(product.price, store.currency)}</span>
+              <span className="text-3xl font-extrabold text-primary">
+                {formatMoney(product.price, store.currency)}
+              </span>
               {onSale && (
                 <span className="text-lg text-muted line-through">
                   {formatMoney(product.comparePrice!, store.currency)}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[11px] text-muted">السعر شامل الضريبة · الدفع عند الاستلام متاح</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+              <span>السعر شامل الضريبة</span>
+              <span className="inline-flex items-center gap-1 font-semibold">
+                <Truck className="h-3.5 w-3.5 text-primary" />
+                {product.shippingPrice > 0
+                  ? `الشحن: ${formatMoney(product.shippingPrice, store.currency)}`
+                  : "الشحن مجاني"}
+              </span>
+            </div>
 
             {product.description && (
-              <p className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-muted">{product.description}</p>
+              <p className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-muted">
+                {product.description}
+              </p>
             )}
 
             <div className="mt-7">
@@ -147,7 +164,7 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
             </div>
 
             <Link
-              href={`${base}` || "/"}
+              href={`${base}#products`}
               className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-muted transition-colors hover:text-primary"
             >
               <ChevronLeft className="h-4 w-4 rotate-180" />
@@ -156,6 +173,19 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
           </div>
         </div>
       </main>
+
+      <StoreFooter
+        store={{
+          name: store.name,
+          slug: store.slug,
+          logo: store.logo,
+          phone: store.phone,
+          description: store.description,
+          currency: store.currency,
+        }}
+        base={base}
+        categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+      />
     </div>
   );
 }

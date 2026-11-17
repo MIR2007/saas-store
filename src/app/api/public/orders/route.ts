@@ -5,12 +5,15 @@ import { z } from "zod";
 const itemSchema = z.object({
   productId: z.string(),
   quantity: z.number().int().positive(),
+  variant: z.string().max(200).optional(),
 });
 
 const schema = z.object({
   storeSlug: z.string(),
   customerName: z.string().min(2),
   customerPhone: z.string().min(6),
+  customerCountry: z.string().max(60).optional(),
+  customerRegion: z.string().max(60).optional(),
   customerAddress: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(itemSchema).min(1),
@@ -22,7 +25,16 @@ export async function POST(req: Request) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
 
-    const { storeSlug, customerName, customerPhone, customerAddress, notes, items } = parsed.data;
+    const {
+      storeSlug,
+      customerName,
+      customerPhone,
+      customerCountry,
+      customerRegion,
+      customerAddress,
+      notes,
+      items,
+    } = parsed.data;
 
     const store = await prisma.store.findUnique({ where: { slug: storeSlug } });
     if (!store || !store.active) return NextResponse.json({ error: "المتجر غير موجود" }, { status: 404 });
@@ -44,12 +56,16 @@ export async function POST(req: Request) {
     }
 
     // Compute total
-    let total = 0;
+    let subtotal = 0;
+    let shipping = 0;
     const orderItems = items.map((item) => {
       const p = productMap.get(item.productId)!;
-      total += p.price * item.quantity;
-      return { productId: p.id, name: p.name, price: p.price, quantity: item.quantity };
+      subtotal += p.price * item.quantity;
+      shipping += (p.shippingPrice || 0) * item.quantity;
+      const name = item.variant ? `${p.name} (${item.variant})` : p.name;
+      return { productId: p.id, name, price: p.price, quantity: item.quantity };
     });
+    const total = subtotal + shipping;
 
     // Create the order first, then its items and stock updates. Neon's HTTP
     // driver does not support interactive transactions (nested writes included),
@@ -61,8 +77,11 @@ export async function POST(req: Request) {
         storeId: store.id,
         customerName,
         customerPhone,
+        customerCountry: customerCountry || "مصر",
+        customerRegion: customerRegion || "",
         customerAddress: customerAddress || "",
         notes: notes || "",
+        shipping,
         total,
       },
     });

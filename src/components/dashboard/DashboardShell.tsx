@@ -11,15 +11,11 @@ import {
   ChevronDown,
   Coins,
   CreditCard,
-  Eye,
-  Globe2,
-  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Megaphone,
   Menu,
   Package,
-  PlusCircle,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -144,20 +140,6 @@ const storeSections: NavSection[] = [
   },
 ];
 
-const platformNav = [
-  { href: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/stores", label: "متاجري", icon: Store },
-  { href: "/dashboard/stores/new", label: "متجر جديد", icon: PlusCircle },
-];
-
-function platformActive(pathname: string, href: string, exact?: boolean) {
-  if (exact) return pathname === href;
-  if (href === "/dashboard/stores") {
-    return pathname === href || (pathname.startsWith("/dashboard/stores/") && pathname !== "/dashboard/stores/new");
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export default function DashboardShell({
   user,
   stores,
@@ -264,27 +246,6 @@ export default function DashboardShell({
         </div>
       )}
 
-      <nav className="space-y-1">
-        {platformNav.map((item) => {
-          const active = platformActive(pathname, item.href, item.exact);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
-                active
-                  ? "bg-primary/10 text-primary ring-1 ring-primary/15"
-                  : "text-muted hover:bg-surface hover:text-foreground"
-              }`}
-            >
-              <item.icon className={`h-[18px] w-[18px] transition-transform group-hover:scale-110 ${active ? "text-primary" : ""}`} />
-              {item.label}
-              {active && <span className="ms-auto h-1.5 w-1.5 rounded-full bg-primary" />}
-            </Link>
-          );
-        })}
-      </nav>
-
       {currentStore && (
         <div className="mt-6 border-t border-border pt-5">
           <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-muted">
@@ -347,22 +308,6 @@ export default function DashboardShell({
       <div className="mt-6 border-t border-border pt-4">
         <div className="space-y-0.5">
           <Link
-            href="/"
-            className="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-muted transition-colors hover:bg-surface hover:text-foreground"
-          >
-            <Globe2 className="h-[17px] w-[17px] transition-transform group-hover:scale-110" />
-            زيارة الموقع
-            <ArrowUpRight className="ms-auto h-3.5 w-3.5 opacity-50" />
-          </Link>
-          <Link
-            href="/livestore"
-            className="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-muted transition-colors hover:bg-surface hover:text-foreground"
-          >
-            <Eye className="h-[17px] w-[17px] transition-transform group-hover:scale-110" />
-            المتجر التجريبي
-            <ArrowUpRight className="ms-auto h-3.5 w-3.5 opacity-50" />
-          </Link>
-          <Link
             href="/dashboard/stores/new"
             className="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-muted transition-colors hover:bg-surface hover:text-foreground"
           >
@@ -397,7 +342,7 @@ export default function DashboardShell({
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 start-0 z-40 hidden w-72 flex-col border-e border-border bg-card lg:flex">
         <div className="flex h-[72px] shrink-0 items-center border-b border-border px-6">
-          <Logo size="md" />
+          <Logo size="md" href="/dashboard" />
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-5">{sidebarContent}</div>
         <div className="shrink-0 border-t border-border p-4">
@@ -427,7 +372,7 @@ export default function DashboardShell({
 
       {/* Mobile header */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card/90 px-4 backdrop-blur-xl lg:hidden">
-        <Logo size="sm" />
+        <Logo size="sm" href="/dashboard" />
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <button
@@ -446,7 +391,7 @@ export default function DashboardShell({
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 start-0 flex w-[300px] max-w-[88%] flex-col bg-card shadow-2xl">
             <div className="flex h-16 items-center justify-between border-b border-border px-5">
-              <Logo size="sm" />
+              <Logo size="sm" href="/dashboard" />
               <button
                 onClick={() => setOpen(false)}
                 aria-label="إغلاق"

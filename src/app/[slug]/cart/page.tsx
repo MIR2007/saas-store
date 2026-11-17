@@ -6,7 +6,15 @@ import Link from "next/link";
 import { Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
-type CartItem = { productId: string; name: string; price: number; quantity: number };
+type CartItem = {
+  productId: string;
+  name: string;
+  variant?: string;
+  price: number;
+  quantity: number;
+  shipping?: number;
+  image?: string;
+};
 
 export default function CartPage() {
   const params = useParams();
@@ -41,15 +49,17 @@ export default function CartPage() {
     localStorage.setItem(`cart:${slug}`, JSON.stringify(next));
   }
 
-  function updateQty(productId: string, q: number) {
-    save(cart.map((c) => (c.productId === productId ? { ...c, quantity: Math.max(1, q) } : c)));
+  function updateQty(index: number, q: number) {
+    save(cart.map((c, i) => (i === index ? { ...c, quantity: Math.max(1, q) } : c)));
   }
 
-  function remove(productId: string) {
-    save(cart.filter((c) => c.productId !== productId));
+  function remove(index: number) {
+    save(cart.filter((_, i) => i !== index));
   }
 
-  const total = cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const shippingTotal = cart.reduce((s, c) => s + (c.shipping || 0) * c.quantity, 0);
+  const total = subtotal + shippingTotal;
   const count = cart.reduce((s, c) => s + c.quantity, 0);
 
   if (cart.length === 0) {
@@ -99,18 +109,26 @@ export default function CartPage() {
 
         <div className="grid gap-5 lg:grid-cols-3">
           <div className="space-y-3 lg:col-span-2">
-            {cart.map((c) => (
-              <div key={c.productId} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            {cart.map((c, index) => (
+              <div key={`${c.productId}-${index}`} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface text-muted">
-                    <ShoppingBag className="h-5 w-5" />
+                  <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface text-muted">
+                    {c.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.image} alt={c.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <ShoppingBag className="h-5 w-5" />
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-bold text-foreground">{c.name}</div>
+                    {c.variant && (
+                      <div className="mt-0.5 truncate text-[11px] font-semibold text-primary">{c.variant}</div>
+                    )}
                     <div className="mt-0.5 text-xs text-muted">{formatMoney(c.price, currency)} للقطعة</div>
                   </div>
                   <button
-                    onClick={() => remove(c.productId)}
+                    onClick={() => remove(index)}
                     aria-label="حذف من السلة"
                     className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600"
                   >
@@ -120,7 +138,7 @@ export default function CartPage() {
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
                   <div className="flex items-center overflow-hidden rounded-lg border border-border bg-surface">
                     <button
-                      onClick={() => updateQty(c.productId, c.quantity - 1)}
+                      onClick={() => updateQty(index, c.quantity - 1)}
                       aria-label="تقليل"
                       className="grid h-8 w-8 place-items-center text-muted hover:bg-card hover:text-foreground"
                     >
@@ -128,7 +146,7 @@ export default function CartPage() {
                     </button>
                     <span className="w-8 text-center text-sm font-bold text-foreground">{c.quantity}</span>
                     <button
-                      onClick={() => updateQty(c.productId, c.quantity + 1)}
+                      onClick={() => updateQty(index, c.quantity + 1)}
                       aria-label="زيادة"
                       className="grid h-8 w-8 place-items-center text-muted hover:bg-card hover:text-foreground"
                     >
@@ -152,7 +170,13 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between text-muted">
                 <span>الشحن</span>
-                <span className="font-semibold text-foreground">يتحدد مع التاجر</span>
+                <span className="font-semibold text-foreground">
+                  {shippingTotal > 0 ? formatMoney(shippingTotal, currency) : "مجاني"}
+                </span>
+              </div>
+              <div className="flex justify-between text-muted">
+                <span>المنتجات</span>
+                <span className="font-semibold text-foreground">{formatMoney(subtotal, currency)}</span>
               </div>
             </div>
             <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">

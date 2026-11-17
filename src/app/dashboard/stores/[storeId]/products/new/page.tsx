@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ImagePlus, Package, Plus, Tags, Wallet, Upload } from "lucide-react";
+import { ImagePlus, Layers, Package, Plus, Tags, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import ProductOptionsEditor, { type ProductOption } from "@/components/dashboard/ProductOptionsEditor";
 import { currencySymbol, formatMoney } from "@/lib/format";
 import { cardClass, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
 
@@ -22,6 +23,8 @@ export default function NewProductPage() {
   const [stock, setStock] = useState("0");
   const [categoryId, setCategoryId] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [options, setOptions] = useState<ProductOption[]>([]);
+  const [shippingPrice, setShippingPrice] = useState("");
   const [active, setActive] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -91,6 +94,16 @@ export default function NewProductPage() {
           stock: Number(stock),
           categoryId: categoryId || null,
           images: imageUrl ? [imageUrl] : [],
+          options: JSON.stringify(
+            options
+              .map((option) => ({
+                ...option,
+                name: option.name.trim(),
+                values: option.values.filter((value) => value.label.trim() || value.image),
+              }))
+              .filter((option) => option.name && option.values.length)
+          ),
+          shippingPrice: shippingPrice ? Number(shippingPrice) : 0,
           active,
         }),
       });
@@ -191,6 +204,21 @@ export default function NewProductPage() {
                 />
                 <p className="mt-1.5 text-[11px] text-muted">لو خلص المخزون، المنتج هيظهر «نفذ» ومش هيتضاف للسلة.</p>
               </div>
+              <div>
+                <label className={labelClass}>
+                  سعر الشحن <span className="font-normal text-muted">(اختياري)</span>
+                </label>
+                <input
+                  type="number"
+                  value={shippingPrice}
+                  onChange={(e) => setShippingPrice(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  className={inputClass}
+                />
+                <p className="mt-1.5 text-[11px] text-muted">بيتضاف لسعر الشحن الإجمالي في صفحة الشراء.</p>
+              </div>
             </div>
           </section>
 
@@ -224,6 +252,17 @@ export default function NewProductPage() {
                 إضافة
               </button>
             </div>
+          </section>
+
+          <section className={`${cardClass} p-6`}>
+            <div className="mb-5 flex items-center gap-2">
+              <Layers className="h-5 w-5 text-primary" />
+              <h2 className="font-extrabold text-foreground">خيارات المنتج</h2>
+            </div>
+            <p className="mb-4 text-[11px] leading-relaxed text-muted">
+              ضيف خيارات زي اللون أو المقاس أو صورة النقشة. العميل هيختار منها قبل ما يضيف للسلة.
+            </p>
+            <ProductOptionsEditor options={options} onChange={setOptions} />
           </section>
         </div>
 

@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
   Boxes,
@@ -24,6 +25,16 @@ import { primaryBtn, secondaryBtn } from "@/lib/ui";
 export default async function DashboardHome() {
   const session = await getSession();
   const userId = session!.userId;
+
+  // التاجر بيدخل على متجره مباشرة بدل صفحة المنصة.
+  if (session!.role === "MERCHANT") {
+    const firstStore = await prisma.store.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    if (firstStore) redirect(`/dashboard/stores/${firstStore.id}`);
+  }
 
   const [stores, revenueAgg, pendingCount, storeRevenue, recentOrders] = await Promise.all([
     prisma.store.findMany({

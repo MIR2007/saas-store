@@ -7,6 +7,7 @@ import PageHeader from "@/components/dashboard/PageHeader";
 import StatCard from "@/components/dashboard/StatCard";
 import EmptyState from "@/components/dashboard/EmptyState";
 import DeleteProductButton from "@/components/DeleteProductButton";
+import ProductExportButtons, { type ExportProduct } from "@/components/dashboard/ProductExportButtons";
 import { formatMoney, formatNumber } from "@/lib/format";
 import { cardClass, primaryBtn } from "@/lib/ui";
 
@@ -14,6 +15,17 @@ function parseImages(raw: string) {
   try {
     const imgs = JSON.parse(raw || "[]");
     return Array.isArray(imgs) ? (imgs as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseOptions(raw: string) {
+  try {
+    const options = JSON.parse(raw || "[]");
+    return Array.isArray(options)
+      ? (options as { name: string; type: string; values: { label: string; value: string; image?: string }[] }[])
+      : [];
   } catch {
     return [];
   }
@@ -51,6 +63,20 @@ export default async function ProductsPage(props: PageProps<"/dashboard/stores/[
     return true;
   });
 
+  const exportProducts: ExportProduct[] = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    comparePrice: product.comparePrice,
+    stock: product.stock,
+    active: product.active,
+    shippingPrice: product.shippingPrice,
+    category: product.category?.name || "",
+    images: parseImages(product.images),
+    options: parseOptions(product.options),
+  }));
+
   return (
     <div className="p-5 sm:p-6 lg:p-8">
       <PageHeader
@@ -61,10 +87,13 @@ export default async function ProductsPage(props: PageProps<"/dashboard/stores/[
         subtitle="ضيف منتجاتك، ظبّط الأسعار والمخزون، وخلي متجرك جاهز للبيع."
         icon={<Package className="h-6 w-6" />}
         action={
-          <Link href={`/dashboard/stores/${store.id}/products/new`} className={primaryBtn}>
-            <Plus className="h-4 w-4" />
-            منتج جديد
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <ProductExportButtons products={exportProducts} storeName={store.name} />
+            <Link href={`/dashboard/stores/${store.id}/products/new`} className={primaryBtn}>
+              <Plus className="h-4 w-4" />
+              منتج جديد
+            </Link>
+          </div>
         }
       />
 

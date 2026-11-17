@@ -13,6 +13,8 @@ type Product = {
   comparePrice: number | null;
   images: string;
   stock: number;
+  options?: string;
+  shippingPrice?: number;
 };
 
 export default function ProductCard({
@@ -35,12 +37,36 @@ export default function ProductCard({
   const discount = onSale ? Math.round((1 - product.price / product.comparePrice!) * 100) : 0;
 
   function addToCart() {
+    try {
+      const parsed = JSON.parse(product.options || "[]");
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        router.push(`${prefix}/products/${product.id}`);
+        return;
+      }
+    } catch {
+      // ignore invalid options JSON
+    }
     const key = `cart:${storeSlug}`;
     const raw = localStorage.getItem(key);
-    const cart: { productId: string; name: string; price: number; quantity: number }[] = raw ? JSON.parse(raw) : [];
-    const idx = cart.findIndex((c) => c.productId === product.id);
+    const cart: {
+      productId: string;
+      name: string;
+      price: number;
+      quantity: number;
+      shipping?: number;
+      image?: string;
+    }[] = raw ? JSON.parse(raw) : [];
+    const idx = cart.findIndex((c) => c.productId === product.id && c.name === product.name);
     if (idx >= 0) cart[idx].quantity += 1;
-    else cart.push({ productId: product.id, name: product.name, price: product.price, quantity: 1 });
+    else
+      cart.push({
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        shipping: product.shippingPrice || 0,
+        image: images[0] || "",
+      });
     localStorage.setItem(key, JSON.stringify(cart));
     router.push(`${prefix}/cart`);
   }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { FolderTree, Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { FolderTree, ImagePlus, Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import EmptyState from "@/components/dashboard/EmptyState";
 import { cardClass, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
@@ -12,6 +12,7 @@ type Category = {
   id: string;
   name: string;
   slug: string;
+  image?: string;
   _count?: { products: number };
 };
 
@@ -21,10 +22,52 @@ export default function CategoriesPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
+  const [image, setImage] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageTarget, setImageTarget] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function uploadImage(file: File, category?: Category) {
+    setUploading(true);
+    setError("");
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      if (category?.image) body.append("previousUrl", category.image);
+      const uploadRes = await fetch("/api/upload/image", { method: "POST", body });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
+        setError(uploadData.error || "فشل رفع صورة القسم");
+        return;
+      }
+      if (!category) {
+        setImage(uploadData.url);
+        return;
+      }
+      const res = await fetch(`/api/stores/${storeId}/categories`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: category.id, image: uploadData.url }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "مش قادرين نحفظ صورة القسم");
+        return;
+      }
+      setCategories((previous) =>
+        previous.map((item) => (item.id === category.id ? { ...item, image: uploadData.url } : item))
+      );
+    } catch {
+      setError("فشل رفع صورة القسم، جرّب تاني.");
+    } finally {
+      setUploading(false);
+      setImageTarget(null);
+    }
+  }
 
   async function load() {
     const res = await fetch(`/api/stores/${storeId}/categories`);
@@ -47,7 +90,7 @@ export default function CategoriesPage() {
       const res = await fetch(`/api/stores/${storeId}/categories`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: name.trim(), image }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -55,6 +98,7 @@ export default function CategoriesPage() {
         return;
       }
       setName("");
+      setImage("");
       await load();
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");
@@ -149,6 +193,42 @@ export default function CategoriesPage() {
                 maxLength={60}
               />
             </div>
+            <div>
+              <label className={labelClass}>صورة القسم (اختياري)</label>
+              <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-surface/60 p-3">
+                <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-card text-primary ring-1 ring-border">
+                  {image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={image} alt="صورة القسم" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImagePlus className="h-5 w-5" />
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageTarget(null);
+                      fileInput.current?.click();
+                    }}
+                    disabled={uploading}
+                    className="text-xs font-bold text-primary hover:underline disabled:opacity-60"
+                  >
+                    {uploading && imageTarget === null ? "بنرفع..." : image ? "تغيير الصورة" : "رفع صورة للقسم"}
+                  </button>
+                  <p className="mt-1 text-[10px] text-muted">بتظهر في كروت الأقسام على المتجر.</p>
+                </div>
+                {image && (
+                  <button
+                    type="button"
+                    onClick={() => setImage("")}
+                    className="text-[11px] font-bold text-rose-600 hover:underline dark:text-rose-400"
+                  >
+                    إزالة
+                  </button>
+                )}
+              </div>
+            </div>
             {error && (
               <p className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-700 dark:text-rose-300">
                 {error}
@@ -159,6 +239,20 @@ export default function CategoriesPage() {
               إضافة القسم
             </button>
           </form>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const target = imageTarget ? categories.find((item) => item.id === imageTarget) : undefined;
+                uploadImage(file, target);
+              }
+              e.target.value = "";
+            }}
+          />
           <p className="mt-3 text-[11px] leading-relaxed text-muted">
             الأقسام بتظهر للعميل كفلاتر فوق المنتجات في واجهة المتجر.
           </p>
@@ -181,8 +275,13 @@ export default function CategoriesPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {categories.map((category) => (
                 <div key={category.id} className={`${cardClass} flex items-center gap-3 p-4`}>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <FolderTree className="h-5 w-5" />
+                  <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-primary">
+                    {category.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={category.image} alt={category.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <FolderTree className="h-5 w-5" />
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-extrabold text-foreground">{category.name}</div>
@@ -191,6 +290,22 @@ export default function CategoriesPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageTarget(category.id);
+                        fileInput.current?.click();
+                      }}
+                      disabled={uploading}
+                      title="صورة القسم"
+                      className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-primary/10 hover:text-primary"
+                    >
+                      {uploading && imageTarget === category.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <ImagePlus className="h-3.5 w-3.5" />
+                      )}
+                    </button>
                     <button
                       type="button"
                       onClick={() => renameCategory(category)}

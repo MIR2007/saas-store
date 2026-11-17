@@ -5,10 +5,18 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Banknote, Check, MapPin, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { formatMoney } from "@/lib/format";
-import { EGYPT_GOVERNORATES, EGYPT_PAYMENT_METHODS } from "@/lib/egypt";
+import { COUNTRIES, countryByName, EGYPT_PAYMENT_METHODS } from "@/lib/egypt";
 import { inputClass, labelClass } from "@/lib/ui";
 
-type CartItem = { productId: string; name: string; price: number; quantity: number };
+type CartItem = {
+  productId: string;
+  name: string;
+  variant?: string;
+  price: number;
+  quantity: number;
+  shipping?: number;
+  image?: string;
+};
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -20,7 +28,8 @@ export default function CheckoutPage() {
   const [base, setBase] = useState(`/${slug}`);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("القاهرة");
+  const [country, setCountry] = useState("مصر");
+  const [region, setRegion] = useState("القاهرة");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [payment, setPayment] = useState("cod");
@@ -45,8 +54,11 @@ export default function CheckoutPage() {
       });
   }, [slug]);
 
-  const total = cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const shippingTotal = cart.reduce((s, c) => s + (c.shipping || 0) * c.quantity, 0);
+  const total = subtotal + shippingTotal;
   const count = cart.reduce((s, c) => s + c.quantity, 0);
+  const regions = countryByName(country).regions;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,9 +76,15 @@ export default function CheckoutPage() {
           storeSlug: slug,
           customerName: name,
           customerPhone: phone,
-          customerAddress: `${city} - ${address}`,
+          customerCountry: country,
+          customerRegion: region,
+          customerAddress: address,
           notes,
-          items: cart.map((c) => ({ productId: c.productId, quantity: c.quantity })),
+          items: cart.map((c) => ({
+            productId: c.productId,
+            quantity: c.quantity,
+            variant: c.variant || undefined,
+          })),
         }),
       });
       const data = await res.json();
@@ -132,15 +150,35 @@ export default function CheckoutPage() {
                   />
                   <p className="mt-1 text-[10px] text-muted">هنكلمك عليه لتأكيد الطلب.</p>
                 </div>
-                <div>
-                  <label className={labelClass}>المحافظة</label>
-                  <select value={city} onChange={(e) => setCity(e.target.value)} className={inputClass}>
-                    {EGYPT_GOVERNORATES.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className={labelClass}>الدولة</label>
+                    <select
+                      value={country}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setCountry(next);
+                        setRegion(countryByName(next).regions[0] || "");
+                      }}
+                      className={inputClass}
+                    >
+                      {COUNTRIES.map((item) => (
+                        <option key={item.code} value={item.name}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>المحافظة / المنطقة</label>
+                    <select value={region} onChange={(e) => setRegion(e.target.value)} className={inputClass}>
+                      {regions.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass}>العنوان بالتفصيل</label>
@@ -221,6 +259,7 @@ export default function CheckoutPage() {
                   <li key={c.productId} className="flex items-start justify-between gap-3 py-2.5 text-sm">
                     <div className="min-w-0">
                       <div className="truncate font-semibold text-foreground">{c.name}</div>
+                      {c.variant && <div className="truncate text-[10px] font-semibold text-primary">{c.variant}</div>}
                       <div className="text-[10px] text-muted">الكمية: {c.quantity}</div>
                     </div>
                     <span className="shrink-0 font-bold text-foreground">{formatMoney(c.price * c.quantity, currency)}</span>
@@ -234,7 +273,13 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-muted">
                   <span>الشحن</span>
-                  <span className="font-semibold text-foreground">يتحدد مع التاجر</span>
+                  <span className="font-semibold text-foreground">
+                    {shippingTotal > 0 ? formatMoney(shippingTotal, currency) : "مجاني"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-muted">
+                  <span>المنتجات</span>
+                  <span className="font-semibold text-foreground">{formatMoney(subtotal, currency)}</span>
                 </div>
               </div>
               <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">

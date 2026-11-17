@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(1),
+  image: z.string().optional(),
 });
 
 async function ownsStore(storeId: string, userId: string) {
@@ -45,7 +46,12 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
     const cat = await prisma.category.create({
-      data: { storeId, name: parsed.data.name, slug: slugify(parsed.data.name) || "category" },
+      data: {
+        storeId,
+        name: parsed.data.name,
+        slug: slugify(parsed.data.name) || "category",
+        image: parsed.data.image || "",
+      },
     });
     return NextResponse.json({ category: cat });
   } catch (e) {
@@ -64,15 +70,21 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeI
   try {
     const body = await req.json();
     const id = typeof body?.id === "string" ? body.id : "";
-    const name = typeof body?.name === "string" ? body.name.trim() : "";
-    if (!id || !name) return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
+    const name = typeof body?.name === "string" ? body.name.trim() : undefined;
+    const image = typeof body?.image === "string" ? body.image : undefined;
+    if (!id || (!name && image === undefined)) {
+      return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
+    }
 
     const category = await prisma.category.findFirst({ where: { id, storeId } });
     if (!category) return NextResponse.json({ error: "القسم غير موجود" }, { status: 404 });
 
     const updated = await prisma.category.update({
       where: { id },
-      data: { name, slug: slugify(name) || "category" },
+      data: {
+        ...(name ? { name, slug: slugify(name) || "category" } : {}),
+        ...(image !== undefined ? { image } : {}),
+      },
     });
     return NextResponse.json({ category: updated });
   } catch (e) {

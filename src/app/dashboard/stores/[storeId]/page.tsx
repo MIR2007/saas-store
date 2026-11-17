@@ -4,9 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowUpRight,
+  CalendarDays,
   Clock,
+  Eye,
   FolderTree,
+  Globe2,
   Package,
+  Phone,
   Settings,
   ShoppingBag,
   Store,
@@ -19,6 +23,15 @@ import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { primaryBtn, secondaryBtn, cardClass } from "@/lib/ui";
 import { storePublicUrl } from "@/lib/domains";
 import { getStoreTheme } from "@/lib/themes";
+
+function firstImage(raw: string | undefined | null) {
+  try {
+    const images = JSON.parse(raw || "[]");
+    return Array.isArray(images) ? images[0] || "" : "";
+  } catch {
+    return "";
+  }
+}
 
 export default async function StoreDetailPage(props: PageProps<"/dashboard/stores/[storeId]">) {
   const session = await getSession();
@@ -34,7 +47,7 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
       where: { storeId },
       orderBy: { createdAt: "desc" },
       take: 6,
-      include: { items: true },
+      include: { items: { include: { product: { select: { images: true } } } } },
     }),
     prisma.order.aggregate({ where: { storeId }, _sum: { total: true } }),
   ]);
@@ -136,11 +149,59 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
       </div>
 
       {/* Stats */}
-      <div className="mb-8 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-3.5 lg:grid-cols-5">
         <StatCard icon={Package} label="المنتجات" value={formatNumber(store._count.products)} hint="منتج في المتجر" tone="amber" />
         <StatCard icon={ShoppingBag} label="الطلبات" value={formatNumber(store._count.orders)} hint="طلب إجمالي" tone="violet" />
         <StatCard icon={FolderTree} label="التصنيفات" value={formatNumber(store._count.categories)} hint="قسم في المتجر" tone="sky" />
+        <StatCard icon={Eye} label="الزوار" value={formatNumber(store.views)} hint="زيارة للمتجر" tone="rose" />
         <StatCard icon={Wallet} label="المبيعات" value={formatMoney(revenue, store.currency)} hint="إجمالي الإيرادات" tone="emerald" />
+      </div>
+
+      {/* Basic info */}
+      <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`${cardClass} p-4`}>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted">
+            <Globe2 className="h-3.5 w-3.5 text-primary" />
+            رابط المتجر
+          </div>
+          <a
+            href={storePublicUrl(store.slug, store.customDomain)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1.5 block truncate font-mono text-xs font-bold text-foreground hover:text-primary"
+            dir="ltr"
+          >
+            {store.customDomain || `${store.slug}.beepanal.store`}
+          </a>
+        </div>
+        <div className={`${cardClass} p-4`}>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted">
+            <Phone className="h-3.5 w-3.5 text-primary" />
+            واتساب المتجر
+          </div>
+          <div className="mt-1.5 truncate text-sm font-bold text-foreground" dir="ltr">
+            {store.phone || "لسه مضفتوش"}
+          </div>
+        </div>
+        <div className={`${cardClass} p-4`}>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted">
+            <Wallet className="h-3.5 w-3.5 text-primary" />
+            الاشتراك
+          </div>
+          <div className="mt-1.5 text-sm font-bold text-foreground">
+            {store.plan === "yearly" ? "سنوي" : store.plan === "monthly" ? "شهري" : "تجربة مجانية"}
+          </div>
+          <div className="text-[10px] text-muted">
+            {store.planStatus === "active" ? "نشط" : store.planStatus === "pending" ? "بانتظار التفعيل" : "منتهي"}
+          </div>
+        </div>
+        <div className={`${cardClass} p-4`}>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted">
+            <CalendarDays className="h-3.5 w-3.5 text-primary" />
+            تاريخ الإنشاء
+          </div>
+          <div className="mt-1.5 text-sm font-bold text-foreground">{formatDate(store.createdAt)}</div>
+        </div>
       </div>
 
       {/* Quick actions */}
@@ -212,10 +273,26 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-muted">
-                      {order.items[0]?.name}
-                      {order.items.length > 1 && (
-                        <span className="text-[10px] text-muted"> +{order.items.length - 1}</span>
-                      )}
+                      <div className="flex items-center gap-2.5">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-surface text-muted">
+                          {firstImage(order.items[0]?.product?.images) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={firstImage(order.items[0]?.product?.images)}
+                              alt={order.items[0]?.name || ""}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Package className="h-4 w-4" />
+                          )}
+                        </span>
+                        <span className="truncate">
+                          {order.items[0]?.name}
+                          {order.items.length > 1 && (
+                            <span className="text-[10px] text-muted"> +{order.items.length - 1}</span>
+                          )}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 font-bold text-foreground">
                       {formatMoney(order.total, store.currency)}

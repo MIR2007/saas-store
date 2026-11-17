@@ -20,6 +20,15 @@ import { cardClass, primaryBtn, secondaryBtn, inputClass, labelClass } from "@/l
 
 const statuses: OrderStatus[] = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
 
+function firstImage(raw: string | undefined | null) {
+  try {
+    const images = JSON.parse(raw || "[]");
+    return Array.isArray(images) ? images[0] || "" : "";
+  } catch {
+    return "";
+  }
+}
+
 export default function OrderDetailPage() {
   const params = useParams();
   const storeId = params.storeId as string;
@@ -121,12 +130,19 @@ export default function OrderDetailPage() {
                   <div className="text-sm font-bold text-foreground">{formatDate(order.createdAt)}</div>
                 </div>
               </div>
-              {order.customerAddress && (
+              {(order.customerCountry || order.customerRegion || order.customerAddress) && (
                 <div className="flex items-start gap-3 rounded-xl border border-border bg-surface/70 px-4 py-3 sm:col-span-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <div>
                     <div className="text-[10px] text-muted">عنوان التوصيل</div>
-                    <div className="text-sm font-semibold leading-relaxed text-foreground">{order.customerAddress}</div>
+                    <div className="text-sm font-bold text-foreground">
+                      {[order.customerCountry, order.customerRegion].filter(Boolean).join(" · ")}
+                    </div>
+                    {order.customerAddress && (
+                      <div className="mt-0.5 text-sm font-semibold leading-relaxed text-foreground">
+                        {order.customerAddress}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -151,22 +167,30 @@ export default function OrderDetailPage() {
               </span>
             </div>
             <ul className="divide-y divide-border">
-              {order.items.map((it: any) => (
-                <li key={it.id} className="flex items-center gap-3 py-3.5">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface text-muted">
-                    <ShoppingBag className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-bold text-foreground">{it.name}</div>
-                    <div className="text-[11px] text-muted">
-                      {formatMoney(it.price, currency)} × {it.quantity}
+              {order.items.map((it: any) => {
+                const image = firstImage(it.product?.images);
+                return (
+                  <li key={it.id} className="flex items-center gap-3 py-3.5">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-surface text-muted">
+                      {image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={image} alt={it.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <ShoppingBag className="h-4 w-4" />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-foreground">{it.name}</div>
+                      <div className="text-[11px] text-muted">
+                        {formatMoney(it.price, currency)} × {it.quantity}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-sm font-extrabold text-foreground">
-                    {formatMoney(it.price * it.quantity, currency)}
-                  </div>
-                </li>
-              ))}
+                    <div className="text-sm font-extrabold text-foreground">
+                      {formatMoney(it.price * it.quantity, currency)}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         </div>
@@ -186,7 +210,15 @@ export default function OrderDetailPage() {
                 </div>
                 <div className="flex justify-between text-muted">
                   <span>الشحن</span>
-                  <span className="font-semibold text-foreground">يتحدد مع التاجر</span>
+                  <span className="font-semibold text-foreground">
+                    {order.shipping > 0 ? formatMoney(order.shipping, currency) : "مجاني"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-muted">
+                  <span>المنتجات</span>
+                  <span className="font-semibold text-foreground">
+                    {formatMoney(Math.max(0, order.total - (order.shipping || 0)), currency)}
+                  </span>
                 </div>
               </div>
               <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">

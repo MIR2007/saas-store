@@ -33,11 +33,16 @@ model Store {
   slug        String     @unique
   description String     @default("")
   logo        String     @default("")
+  phone       String     @default("")
   themeColor  String     @default("#d97706")
   theme       String     @default("modern")
   currency    String     @default("EGP")
   walletBalance Float    @default(0)
   active      Boolean    @default(true)
+  views       Int        @default(0)
+  plan        String     @default("trial")
+  planStatus  String     @default("active")
+  planRenewsAt DateTime?
   customDomain       String?  @unique
   customDomainStatus String   @default("none")
   domainToken        String   @default("")
@@ -46,6 +51,7 @@ model Store {
   categories  Category[]
   products    Product[]
   orders      Order[]
+  subscriptionRequests SubscriptionRequest[]
 }
 
 model Category {
@@ -54,6 +60,7 @@ model Category {
   store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name     String
   slug     String
+  image    String    @default("")
   products Product[]
 }
 
@@ -68,6 +75,8 @@ model Product {
   price        Float
   comparePrice Float?
   images       String      @default("[]")
+  options      String      @default("[]")
+  shippingPrice Float      @default(0)
   stock        Int         @default(0)
   active       Boolean     @default(true)
   createdAt    DateTime    @default(now())
@@ -80,12 +89,28 @@ model Order {
   store          Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   customerName   String
   customerPhone  String
+  customerCountry String     @default("مصر")
+  customerRegion String      @default("")
   customerAddress String     @default("")
   notes          String      @default("")
   status         String      @default("pending")
+  shipping       Float       @default(0)
   total          Float
   createdAt      DateTime    @default(now())
   items          OrderItem[]
+}
+
+model SubscriptionRequest {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  plan      String
+  method    String
+  reference String
+  phone     String   @default("")
+  amount    Float
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
 }
 
 model OrderItem {

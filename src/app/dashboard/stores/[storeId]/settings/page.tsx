@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ExternalLink, Globe2, Palette, Settings, Store, Trash2, Wallet } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  Globe2,
+  ImagePlus,
+  Loader2,
+  Palette,
+  Phone,
+  Settings,
+  Store,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { CURRENCIES } from "@/lib/format";
 import { cardClass, dangerBtn, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
@@ -26,14 +38,18 @@ export default function StoreSettingsPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
+  const [logo, setLogo] = useState("");
+  const [phone, setPhone] = useState("");
   const [themeColor, setThemeColor] = useState("#d97706");
   const [currency, setCurrency] = useState("EGP");
   const [active, setActive] = useState(true);
   const [customDomain, setCustomDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const logoInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch(`/api/stores/${storeId}`)
@@ -44,6 +60,8 @@ export default function StoreSettingsPage() {
           setName(s.name);
           setSlug(s.slug);
           setDescription(s.description || "");
+          setLogo(s.logo || "");
+          setPhone(s.phone || "");
           setThemeColor(s.themeColor || "#d97706");
           setCurrency(s.currency || "EGP");
           setActive(s.active);
@@ -52,6 +70,27 @@ export default function StoreSettingsPage() {
         setLoaded(true);
       });
   }, [storeId]);
+
+  async function handleLogoUpload(file: File) {
+    setUploadingLogo(true);
+    setError("");
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      if (logo) body.append("previousUrl", logo);
+      const res = await fetch("/api/upload/image", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "فشل رفع اللوجو");
+        return;
+      }
+      setLogo(data.url);
+    } catch {
+      setError("فشل رفع اللوجو، جرّب تاني.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,7 +101,7 @@ export default function StoreSettingsPage() {
       const res = await fetch(`/api/stores/${storeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, themeColor, currency, active }),
+        body: JSON.stringify({ name, description, themeColor, currency, active, logo, phone }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -121,6 +160,73 @@ export default function StoreSettingsPage() {
             <div>
               <label className={labelClass}>اسم المتجر</label>
               <input value={name} onChange={(e) => setName(e.target.value)} required className={inputClass} />
+            </div>
+
+            <div>
+              <label className={labelClass}>لوجو المتجر</label>
+              <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-border bg-surface/60 p-4">
+                <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-card text-2xl font-black text-primary ring-1 ring-border">
+                  {logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logo} alt="لوجو المتجر" className="h-full w-full object-cover" />
+                  ) : (
+                    name.trim().charAt(0) || "B"
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-foreground">ارفع لوجو يظهر في هيدر المتجر والفوتر</p>
+                  <p className="mt-1 text-[11px] text-muted">PNG أو JPG أو WebP — أقصى حجم 5 ميجا. يفضّل صورة مربعة.</p>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => logoInput.current?.click()}
+                      disabled={uploadingLogo}
+                      className={secondaryBtn}
+                    >
+                      {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                      {uploadingLogo ? "بنرفع..." : logo ? "تغيير اللوجو" : "رفع لوجو"}
+                    </button>
+                    {logo && (
+                      <button
+                        type="button"
+                        onClick={() => setLogo("")}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/25 bg-rose-500/5 px-4 py-2.5 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        إزالة
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={logoInput}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>رقم واتساب المتجر</label>
+              <div className="relative">
+                <Phone className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="01xxxxxxxxx"
+                  className={`${inputClass} ps-10`}
+                  dir="ltr"
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted">
+                بيظهر للعملاء في الفوتر وصفحة المنتج عشان يتواصلوا معاك.
+              </p>
             </div>
             <div>
               <label className={labelClass}>رابط المتجر</label>

@@ -35,7 +35,22 @@ export async function POST(req: Request) {
     });
     await setSessionCookie(token);
 
-    return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    let redirect = "/";
+    if (user.role === "MERCHANT") {
+      const store = await prisma.store.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+        select: { id: true },
+      });
+      redirect = store ? `/dashboard/stores/${store.id}` : "/dashboard/stores/new";
+    } else if (user.role === "ADMIN") {
+      redirect = "/dashboard";
+    }
+
+    return NextResponse.json({
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      redirect,
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "خطأ في الخادم" }, { status: 500 });

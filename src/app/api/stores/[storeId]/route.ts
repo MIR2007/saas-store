@@ -16,6 +16,7 @@ const updateSchema = z.object({
   currency: z.string().optional(),
   active: z.boolean().optional(),
   logo: z.string().optional(),
+  phone: z.string().max(30).optional(),
 });
 
 export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId]">) {

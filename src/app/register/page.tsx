@@ -34,7 +34,7 @@ export default function RegisterPage() {
         setError(data.error || "مش قادرين نعمل حسابك");
         return;
       }
-      router.push(role === "MERCHANT" ? "/dashboard" : "/");
+      router.push(data.redirect || (role === "MERCHANT" ? "/dashboard" : "/"));
       router.refresh();
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");

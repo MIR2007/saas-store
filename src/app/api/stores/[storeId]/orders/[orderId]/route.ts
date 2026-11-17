@@ -10,7 +10,10 @@ const schema = z.object({
 async function ownsOrder(storeId: string, orderId: string, userId: string) {
   const store = await prisma.store.findFirst({ where: { id: storeId, userId } });
   if (!store) return null;
-  return prisma.order.findFirst({ where: { id: orderId, storeId }, include: { items: true } });
+  return prisma.order.findFirst({
+    where: { id: orderId, storeId },
+    include: { items: { include: { product: { select: { images: true } } } } },
+  });
 }
 
 export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId]/orders/[orderId]">) {

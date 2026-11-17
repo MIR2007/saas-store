@@ -69,6 +69,22 @@ export async function proxy(request: NextRequest) {
   }
 
   // ---- Platform authentication
+  if (pathname === "/") {
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+    if (token) {
+      try {
+        const { payload } = await jwtVerify(token, SECRET);
+        if (payload.role === "MERCHANT") {
+          const url = request.nextUrl.clone();
+          url.pathname = "/dashboard";
+          return NextResponse.redirect(url);
+        }
+      } catch {
+        // invalid token, show the marketing site
+      }
+    }
+  }
+
   if (pathname.startsWith("/dashboard")) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
     if (!token) {
