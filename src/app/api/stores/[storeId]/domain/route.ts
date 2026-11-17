@@ -9,8 +9,10 @@ import {
   cloudflareDomainsConfigured,
   getCustomHostname,
   isCustomHostnameActive,
+  isSaasQuotaError,
   recommendedDns,
   removeCustomHostname,
+  saasAvailable,
   verificationRecords,
 } from "@/lib/cloudflare-domains";
 import { z } from "zod";
@@ -39,13 +41,18 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId
 
   let verification = parseVerification(store.domainVerification);
   let status = store.customDomainStatus;
+  let automated = cloudflareDomainsConfigured();
 
-  if (store.customDomain && cloudflareDomainsConfigured()) {
+  if (store.customDomain && automated) {
     const hostname = await getCustomHostname(store.customDomain);
     if (hostname.ok && hostname.data) {
       verification = verificationRecords(hostname.data);
       status = isCustomHostnameActive(hostname.data) ? "active" : "pending";
+    } else if (isSaasQuotaError(hostname.errors)) {
+      automated = false;
     }
+  } else if (automated) {
+    automated = await saasAvailable();
   }
 
   return NextResponse.json({
@@ -54,7 +61,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId
     customDomain: store.customDomain,
     status,
     verification,
-    automated: cloudflareDomainsConfigured(),
+    automated,
     platformDomain: PLATFORM_DOMAIN,
     dns: recommendedDns(),
   });
@@ -103,6 +110,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
     automated = true;
     verification = verificationRecords(added.data);
     if (isCustomHostnameActive(added.data)) status = "active";
+  } else if (isSaasQuotaError(added.errors)) {
+    warning = "ربط الدومينات المخصصة هيتفعّل قريبًا. الدومين اتحفظ، وفريق Bee Panal هيكمّل التفعيل.";
   } else if (added.status === 503) {
     warning = "الإضافة التلقائية غير مفعّلة حاليًا. الدومين اتحفظ، وفريق Bee Panal هيفعّله لك.";
   } else if (added.status === 401 || added.status === 403) {
@@ -149,6 +158,16 @@ export async function PATCH(_req: Request, ctx: RouteContext<"/api/stores/[store
 
   const existing = await getCustomHostname(store.customDomain);
   if (!existing.ok || !existing.data) {
+    if (isSaasQuotaError(existing.errors)) {
+      return NextResponse.json({
+        status: store.customDomainStatus || "pending",
+        verified: false,
+        verification: parseVerification(store.domainVerification),
+        pending: true,
+        warning: "ربط الدومينات المخصصة هيتفعّل قريبًا. الدومين محفوظ، وفريق Bee Panal هيكمّل التفعيل.",
+        dns: recommendedDns(),
+      });
+    }
     return NextResponse.json(
       { error: cloudflareDomainError(existing), status: store.customDomainStatus },
       { status: 400 }

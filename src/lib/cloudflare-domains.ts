@@ -56,6 +56,26 @@ export function cloudflareDomainsConfigured() {
   return Boolean(TOKEN && ZONE_ID);
 }
 
+/**
+ * Cloudflare for SaaS is not enabled for the zone/account yet. The API answers
+ * 403 with error 1404 ("No quota has been allocated...") until it is activated.
+ */
+export function isSaasQuotaError(errors?: Array<{ code?: number; message?: string }>) {
+  return Boolean(errors?.some((error) => error.code === 1404));
+}
+
+/** Quick probe used by the dashboard to hide the automated flow until SaaS is on. */
+export async function saasAvailable() {
+  if (!TOKEN || !ZONE_ID) return false;
+  const probe = await call<CloudflareCustomHostname[]>(
+    `/zones/${encodeURIComponent(ZONE_ID)}/custom_hostnames?per_page=1`
+  );
+  if (probe.ok) return true;
+  if (isSaasQuotaError(probe.errors)) return false;
+  // Permission/network hiccups should not hide the normal flow.
+  return true;
+}
+
 /** Convert a Cloudflare custom hostname into the TXT records the merchant must add. */
 export function verificationRecords(record: CloudflareCustomHostname | null | undefined) {
   const records: DomainVerificationRecord[] = [];
@@ -167,6 +187,7 @@ export function cloudflareDomainError(data: any) {
   const code = data?.errors?.[0]?.code;
   const message = data?.errors?.[0]?.message;
   const map: Record<number, string> = {
+    1404: "ربط الدومينات المخصصة هيتفعّل قريبًا. الدومين اتحفظ، وفريق Bee Panal هيكمّل التفعيل.",
     1406: "الدومين ده مربوط بحساب تاني. لازم يتشال من الحساب القديم الأول.",
     1414: "الدومين ده مش صالح أو مش مدعوم.",
     1415: "الدومين ده موجود بالفعل على Cloudflare.",

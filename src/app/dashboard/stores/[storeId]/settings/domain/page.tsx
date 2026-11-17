@@ -94,6 +94,7 @@ export default function StoreDomainPage() {
       setSavedDomain(data.customDomain);
       setStatus(data.status);
       setVerification(Array.isArray(data.verification) ? data.verification : []);
+      if (typeof data.automated === "boolean") setAutomated(data.automated);
       if (data.dns) setDns({ a: data.dns.a || DEFAULT_DNS.a, cname: data.dns.cname || DEFAULT_DNS.cname });
       setNotice(
         data.warning ||
@@ -123,9 +124,10 @@ export default function StoreDomainPage() {
       setVerification(Array.isArray(data.verification) ? data.verification : []);
       if (data.dns) setDns({ a: data.dns.a || DEFAULT_DNS.a, cname: data.dns.cname || DEFAULT_DNS.cname });
       setNotice(
-        data.status === "active"
-          ? "تمام! الدومين متفعّل وجاهز ✅"
-          : "الدومين لسه محتاج وقت لنشر DNS. جرّب تاني بعد شوية."
+        data.warning ||
+          (data.status === "active"
+            ? "تمام! الدومين متفعّل وجاهز ✅"
+            : "الدومين لسه محتاج وقت لنشر DNS. جرّب تاني بعد شوية.")
       );
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");
