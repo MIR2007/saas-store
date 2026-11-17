@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { parseThemeConfig } from "@/lib/themes";
+import {
+  isValidMetaPixelId,
+  isValidTikTokPixelId,
+  serializeTrackingConfig,
+} from "@/lib/tracking";
 import { z } from "zod";
 
 async function ownsStore(storeId: string, userId: string) {
@@ -21,6 +26,14 @@ const updateSchema = z.object({
   freeShippingThreshold: z.number().nonnegative().optional(),
   shippingRates: z.record(z.string().max(60), z.number().nonnegative()).optional(),
   themeConfig: z.record(z.string(), z.any()).optional(),
+  trackingConfig: z
+    .object({
+      metaPixelId: z.string().max(40).optional(),
+      metaEnabled: z.boolean().optional(),
+      tiktokPixelId: z.string().max(40).optional(),
+      tiktokEnabled: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId]">) {
@@ -44,7 +57,7 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeI
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
 
-    const { shippingRates, themeConfig, ...storeData } = parsed.data;
+    const { shippingRates, themeConfig, trackingConfig, ...storeData } = parsed.data;
     const data: Record<string, unknown> = { ...storeData };
     if (shippingRates) {
       const serialized = JSON.stringify(shippingRates);
@@ -59,6 +72,28 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeI
         return NextResponse.json({ error: "إعدادات التصميم كبيرة جدًا" }, { status: 400 });
       }
       data.themeConfig = serialized;
+    }
+    if (trackingConfig) {
+      const metaPixelId = String(trackingConfig.metaPixelId ?? "").trim();
+      const tiktokPixelId = String(trackingConfig.tiktokPixelId ?? "").trim();
+      if (metaPixelId && !isValidMetaPixelId(metaPixelId)) {
+        return NextResponse.json(
+          { error: "معرّف Meta Pixel غير صالح — لازم يكون أرقام فقط (10 إلى 20 رقم)." },
+          { status: 400 }
+        );
+      }
+      if (tiktokPixelId && !isValidTikTokPixelId(tiktokPixelId)) {
+        return NextResponse.json(
+          { error: "معرّف TikTok Pixel غير صالح — حروف وأرقام إنجليزية من 10 إلى 40 خانة." },
+          { status: 400 }
+        );
+      }
+      data.trackingConfig = serializeTrackingConfig({
+        metaPixelId,
+        metaEnabled: trackingConfig.metaEnabled !== false,
+        tiktokPixelId,
+        tiktokEnabled: trackingConfig.tiktokEnabled !== false,
+      });
     }
 
     const updated = await prisma.store.update({

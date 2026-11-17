@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Banknote, Check, MapPin, ShieldCheck, ShoppingBag, Tag, Truck, X } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { COUNTRIES, countryByName, EGYPT_PAYMENT_METHODS } from "@/lib/egypt";
 import { shippingRateFor } from "@/lib/shipping";
+import { pixelContents, trackPixel } from "@/lib/pixel-client";
 import { inputClass, labelClass, secondaryBtn } from "@/lib/ui";
 
 type CartItem = {
@@ -47,6 +48,8 @@ export default function CheckoutPage() {
   } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+  const [storeLoaded, setStoreLoaded] = useState(false);
+  const checkoutTracked = useRef(false);
 
   useEffect(() => {
     const raw = localStorage.getItem(`cart:${slug}`);
@@ -68,7 +71,9 @@ export default function CheckoutPage() {
             (d.store.customDomain && host === String(d.store.customDomain).toLowerCase());
           setBase(isOwnHost ? "" : `/${slug}`);
         }
-      });
+      })
+      .catch(() => undefined)
+      .finally(() => setStoreLoaded(true));
   }, [slug]);
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
@@ -84,6 +89,26 @@ export default function CheckoutPage() {
     freeShippingThreshold > 0 && subtotal < freeShippingThreshold
       ? freeShippingThreshold - subtotal
       : 0;
+
+  useEffect(() => {
+    if (!storeLoaded || !live || checkoutTracked.current || cart.length === 0) return;
+    checkoutTracked.current = true;
+    trackPixel("InitiateCheckout", {
+      content_ids: cart.map((item) => item.productId),
+      content_type: "product",
+      contents: pixelContents(
+        cart.map((item) => ({
+          id: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        }))
+      ),
+      value: subtotal,
+      currency,
+      num_items: count,
+    });
+  }, [storeLoaded, live, cart, subtotal, count, currency]);
 
   async function applyCoupon() {
     const code = couponCode.trim();
@@ -160,7 +185,7 @@ export default function CheckoutPage() {
         return;
       }
       localStorage.removeItem(`cart:${slug}`);
-      router.push(`${base}/order/${data.order.id}`);
+      router.push(`${base}/order/${data.order.id}?success=1`);
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");
     } finally {

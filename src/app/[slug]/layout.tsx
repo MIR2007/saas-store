@@ -9,6 +9,8 @@ import {
 } from "@/lib/themes";
 import { storeIsLive } from "@/lib/store-status";
 import { PLATFORM_URL, storePublicUrl } from "@/lib/domains";
+import { parseTrackingConfig } from "@/lib/tracking";
+import StoreAnalytics from "@/components/storefront/StoreAnalytics";
 
 export async function generateMetadata(props: LayoutProps<"/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -81,13 +83,23 @@ export default async function StoreLayout(props: LayoutProps<"/[slug]">) {
   const { slug } = await props.params;
   const store = await prisma.store.findUnique({
     where: { slug },
-    select: { theme: true, themeColor: true, themeConfig: true },
+    select: {
+      theme: true,
+      themeColor: true,
+      themeConfig: true,
+      trackingConfig: true,
+      active: true,
+      planStatus: true,
+      planRenewsAt: true,
+    },
   });
 
   const theme = getStoreTheme(store?.theme);
   const config = parseThemeConfig(store?.themeConfig);
   const style = storeThemeVars(store?.theme, store?.themeColor, config) as CSSProperties;
   const fontHref = storeFontHref(config);
+  const tracking = parseTrackingConfig(store?.trackingConfig);
+  const live = store ? storeIsLive(store) : false;
 
   return (
     <div
@@ -100,6 +112,12 @@ export default async function StoreLayout(props: LayoutProps<"/[slug]">) {
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link rel="stylesheet" href={fontHref} />
         </>
+      )}
+      {live && (
+        <StoreAnalytics
+          metaPixelId={tracking.metaEnabled ? tracking.metaPixelId : ""}
+          tiktokPixelId={tracking.tiktokEnabled ? tracking.tiktokPixelId : ""}
+        />
       )}
       {props.children}
     </div>

@@ -13,7 +13,6 @@ import {
   Clock,
   Coins,
   CreditCard,
-  Eye,
   FileText,
   Globe2,
   Layers,
@@ -106,19 +105,6 @@ const modules: Record<string, ModuleInfo> = {
       "ربط كل طلب بالحملة الإعلانية",
       "تقارير تكلفة الاستحواذ",
       "مقارنة أداء القنوات",
-    ],
-  },
-  "marketing/pixel": {
-    title: "إعدادات البيكسل",
-    eyebrow: "أدوات التسويق",
-    description: "اربط Facebook Pixel وTikTok Pixel وSnap Pixel لمتابعة التحويلات وإعادة الاستهداف.",
-    icon: Eye,
-    status: "soon",
-    highlights: [
-      "Facebook / Meta Pixel",
-      "TikTok Pixel",
-      "Snapchat Pixel",
-      "TikTok Events API",
     ],
   },
   "marketing/retargeting": {

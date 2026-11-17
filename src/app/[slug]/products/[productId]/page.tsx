@@ -5,6 +5,7 @@ import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductCard from "@/components/ProductCard";
 import ProductGallery from "@/components/storefront/ProductGallery";
+import TrackViewContent from "@/components/storefront/TrackViewContent";
 import StoreHeader from "@/components/storefront/StoreHeader";
 import StoreFooter from "@/components/storefront/StoreFooter";
 import StoreClosed from "@/components/storefront/StoreClosed";
@@ -161,6 +162,13 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
       />
+      <TrackViewContent
+        productId={product.id}
+        name={product.name}
+        price={product.price}
+        currency={store.currency || "EGP"}
+        category={product.category?.name}
+      />
       <StoreHeader
         store={{ name: store.name, slug: store.slug, logo: store.logo, phone: store.phone }}
         base={base}
@@ -240,7 +248,12 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
             )}
 
             <div className="mt-7">
-              <AddToCartButton product={product} storeSlug={store.slug} base={base} />
+              <AddToCartButton
+                product={product}
+                storeSlug={store.slug}
+                base={base}
+                currency={store.currency || "EGP"}
+              />
             </div>
 
             <div className="mt-6 border border-border bg-card p-4">

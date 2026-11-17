@@ -6,6 +6,7 @@ import { CheckCircle2, MapPin, Phone, ShoppingBag, Truck } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { getStoreBase } from "@/lib/store-url";
 import { getStoreTheme } from "@/lib/themes";
+import TrackPurchase from "@/components/storefront/TrackPurchase";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 
 export default async function OrderConfirmationPage(props: PageProps<"/[slug]/order/[orderId]">) {
   const { slug, orderId } = await props.params;
+  const searchParams = await props.searchParams;
+  const isNewOrder = searchParams?.success === "1";
   const store = await prisma.store.findUnique({ where: { slug } });
   if (!store) notFound();
   const order = await prisma.order.findFirst({ where: { id: orderId, storeId: store.id }, include: { items: true } });
@@ -26,6 +29,18 @@ export default async function OrderConfirmationPage(props: PageProps<"/[slug]/or
 
   return (
     <div className="min-h-screen bg-surface">
+      <TrackPurchase
+        orderId={order.id}
+        enabled={isNewOrder}
+        value={order.total}
+        currency={store.currency || "EGP"}
+        items={order.items.map((item) => ({
+          id: item.productId || item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        }))}
+      />
       <div className="h-1 w-full" style={{ backgroundColor: color }} />
       <div className="mx-auto flex min-h-[calc(100vh-4px)] max-w-3xl items-center justify-center px-4 py-10">
         <div className="w-full">

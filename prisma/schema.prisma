@@ -46,8 +46,9 @@ model Store {
   planStatus  String     @default("active")
   planRenewsAt DateTime?
   freeShippingThreshold Float @default(0)
-  shippingRates String     @default("{}")
-  themeConfig  String     @default("{}")
+  shippingRates  String     @default("{}")
+  themeConfig    String     @default("{}")
+  trackingConfig String     @default("{}")
   customDomain       String?  @unique
   customDomainStatus String   @default("none")
   domainToken        String   @default("")

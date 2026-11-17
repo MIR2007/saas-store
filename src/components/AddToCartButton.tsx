@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { pixelContents, trackPixel } from "@/lib/pixel-client";
 
 type OptionValue = { label: string; value: string; image?: string };
 type ProductOption = { name: string; type: "color" | "image" | "button"; values: OptionValue[] };
@@ -20,10 +21,12 @@ export default function AddToCartButton({
   product,
   storeSlug,
   base,
+  currency = "EGP",
 }: {
   product: CartProduct;
   storeSlug: string;
   base?: string;
+  currency?: string;
 }) {
   const router = useRouter();
   const [qty, setQty] = useState(1);
@@ -82,6 +85,17 @@ export default function AddToCartButton({
         image,
       });
     localStorage.setItem(key, JSON.stringify(cart));
+    trackPixel("AddToCart", {
+      content_ids: [product.id],
+      content_name: variant ? `${product.name} (${variant})` : product.name,
+      content_type: "product",
+      contents: pixelContents([
+        { id: product.id, name: product.name, price: product.price, quantity: qty },
+      ]),
+      value: Math.round(product.price * qty * 100) / 100,
+      currency,
+      num_items: qty,
+    });
     router.push(`${prefix}/cart`);
   }
 
