@@ -42,6 +42,7 @@ npm run preview                  # OpenNext build + wrangler dev
    ```bash
    npx wrangler secret put DATABASE_URL
    npx wrangler secret put AUTH_SECRET
+   npx wrangler secret put ADMIN_PASSWORD      # كلمة سر لوحة المطور /admin
    npx wrangler secret put CLOUDFLARE_ZONE_ID     # Zone ID لـ beepanal.store
    npx wrangler secret put CLOUDFLARE_API_TOKEN   # مطلوب لربط الدومينات تلقائيًا
    ```
@@ -58,7 +59,9 @@ npm run preview                  # OpenNext build + wrangler dev
 
 - كل متجر يحصل تلقائيًا على `{slug}.beepanal.store`.
 - الدومينات المخصصة تُدار عبر **Cloudflare for SaaS**:
-  - fallback origin: `customers.beepanal.store`
+  - لازم تفعّل **Cloudflare for SaaS** أولًا من الداشبورد: SSL/TLS → Custom Hostnames → Enable (مجاني لحد 100 دومين، وقد يطلب بيانات دفع).
+  - fallback origin: `customers.beepanal.store` (سجل DNS من نوع `AAAA 100::` بروكسي).
+  - Worker route: `*/*` على zone `beepanal.store` عشان يلتقط ترافيك الدومينات المخصصة.
   - التاجر يضيف `CNAME` إلى `customers.beepanal.store` + سجلات TXT للتحقق.
   - لو `CLOUDFLARE_API_TOKEN` و `CLOUDFLARE_ZONE_ID` مضبوطين، يتم إنشاء Custom Hostname تلقائيًا.
   - بدون توكن: الدومين يُحفظ بحالة `pending` ويتم تفعيله يدويًا من Cloudflare.
@@ -68,6 +71,7 @@ npm run preview                  # OpenNext build + wrangler dev
 
 - `DATABASE_URL` — PostgreSQL connection string (Neon).
 - `AUTH_SECRET` — سر عشوائي (`openssl rand -base64 32`).
+- `ADMIN_PASSWORD` — كلمة سر لوحة المطور `/admin` (لو مش متظبطة بتستخدم `admin123` الافتراضية، وده غير آمن في الإنتاج).
 - `CLOUDFLARE_API_TOKEN` — توكن Cloudflare مقيّد بالصلاحيات أعلاه (اختياري لكن مطلوب للربط التلقائي).
 - `CLOUDFLARE_ZONE_ID` — Zone ID لـ `beepanal.store`.
 
