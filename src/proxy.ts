@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { prisma } from "@/lib/prisma";
 import { extractSubdomain, isPlatformHost, normalizeHost } from "@/lib/domains";
 
 const COOKIE_NAME = "eo_session";
@@ -9,17 +8,24 @@ const SECRET = new TextEncoder().encode(
   process.env.AUTH_SECRET || "dev-secret-change-me-in-production-please"
 );
 
-/** Resolve a custom domain to a store slug. */
-async function slugForCustomDomain(host: string) {
-  if (!host.includes(".") || host.endsWith(".vercel.app") || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+/** Resolve a custom domain to a store slug through the public API route. */
+async function slugForCustomDomain(request: NextRequest, host: string) {
+  if (
+    !host.includes(".") ||
+    host.endsWith(".vercel.app") ||
+    host.endsWith(".workers.dev") ||
+    host.endsWith(".pages.dev") ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(host)
+  ) {
     return null;
   }
   try {
-    const store = await prisma.store.findFirst({
-      where: { customDomain: host },
-      select: { slug: true },
-    });
-    return store?.slug || null;
+    const url = new URL("/api/public/resolve-domain", request.nextUrl.origin);
+    url.searchParams.set("host", host);
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { slug?: string | null };
+    return data.slug || null;
   } catch (error) {
     console.error("domain lookup failed", error);
     return null;
@@ -54,7 +60,7 @@ export async function proxy(request: NextRequest) {
 
   const platform = isPlatformHost(host);
   if (!platform) {
-    const slug = await slugForCustomDomain(host);
+    const slug = await slugForCustomDomain(request, host);
     if (slug) return rewriteToStore(request, slug);
     // Unknown host: let the platform 404 naturally.
     return NextResponse.next();

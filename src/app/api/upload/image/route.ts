@@ -1,8 +1,23 @@
 import { NextResponse } from "next/server";
-import { put, del } from "@vercel/blob";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
+
+/** Only allow deleting objects that live in this user's R2 folder. */
+function r2KeyFromUrl(url: string | undefined, userId: string) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url, "https://beepanal.store");
+    const prefix = "/api/uploads/";
+    if (!parsed.pathname.startsWith(prefix)) return null;
+    const key = decodeURIComponent(parsed.pathname.slice(prefix.length));
+    if (!key.startsWith(`products/${userId}/`)) return null;
+    return key;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -29,35 +44,57 @@ export async function POST(req: Request) {
 
   // Validate size (max 5MB)
   const maxSize = 5 * 1024 * 1024;
-  if ((file as any).size > maxSize) {
+  if (file.size > maxSize) {
     return NextResponse.json({ error: "الصورة أكبر من 5 ميجابايت" }, { status: 400 });
   }
 
-  // Delete previous image if replacing
-  if (previousUrl) {
-    try {
-      await del(previousUrl);
-    } catch {
-      // ignore delete errors
-    }
-  }
-
-  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!blobToken) {
+  const { env } = getCloudflareContext();
+  const bucket = env.UPLOADS;
+  const kv = env.UPLOADS_KV;
+  if (!bucket && !kv) {
     return NextResponse.json(
       { error: "خدمة رفع الصور غير مفعلة على الخادم. تواصل مع الدعم." },
       { status: 503 }
     );
   }
 
+  // Delete the previous image when replacing it.
+  const previousKey = r2KeyFromUrl(previousUrl, session.userId);
+  if (previousKey) {
+    try {
+      if (bucket) await bucket.delete(previousKey);
+      else if (kv) await kv.delete(previousKey);
+    } catch {
+      // ignore delete errors
+    }
+  }
+
   try {
-    const blob = await put(`products/${session.userId}/${Date.now()}_${file.name}`, file, {
-      access: "public",
-      contentType: file.type,
-    });
-    return NextResponse.json({ url: blob.url });
-  } catch (e: any) {
-    console.error("Blob upload error:", e);
+    const safeName =
+      file.name
+        .normalize("NFKD")
+        .replace(/[^\w.\-]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(-80) || "image";
+    const key = `products/${session.userId}/${Date.now()}_${safeName}`;
+    const bytes = await file.arrayBuffer();
+
+    if (bucket) {
+      await bucket.put(key, bytes, {
+        httpMetadata: {
+          contentType: file.type,
+          cacheControl: "public, max-age=31536000, immutable",
+        },
+      });
+    } else if (kv) {
+      await kv.put(key, bytes, {
+        metadata: { contentType: file.type },
+      });
+    }
+
+    return NextResponse.json({ url: `/api/uploads/${key}` });
+  } catch (e) {
+    console.error("Upload error:", e);
     return NextResponse.json({ error: "فشل في رفع الصورة، جرّب تاني." }, { status: 500 });
   }
 }

@@ -15,7 +15,9 @@ export function isPlatformHost(host: string) {
     h === "127.0.0.1" ||
     h === "0.0.0.0" ||
     h.endsWith(".vercel.app") ||
-    h.endsWith(".vercel.sh")
+    h.endsWith(".vercel.sh") ||
+    h.endsWith(".workers.dev") ||
+    h.endsWith(".pages.dev")
   );
 }
 
@@ -33,7 +35,7 @@ export function extractSubdomain(host: string): string | null {
   if (!h.endsWith(`.${PLATFORM_DOMAIN}`)) return null;
   const sub = h.slice(0, -(PLATFORM_DOMAIN.length + 1));
   if (!sub || sub.includes(".")) return null;
-  if (sub === "www" || sub === "app" || sub === "admin" || sub === "api") return null;
+  if (sub === "www" || sub === "app" || sub === "admin" || sub === "api" || sub === "customers") return null;
   return sub;
 }
 

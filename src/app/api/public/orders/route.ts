@@ -51,27 +51,62 @@ export async function POST(req: Request) {
       return { productId: p.id, name: p.name, price: p.price, quantity: item.quantity };
     });
 
-    // Create order + decrement stock in transaction
-    const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          storeId: store.id,
-          customerName,
-          customerPhone,
-          customerAddress: customerAddress || "",
-          notes: notes || "",
-          total,
-          items: { create: orderItems },
-        },
-      });
-      for (const item of items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
-        });
-      }
-      return created;
+    // Create the order first, then its items and stock updates. Neon's HTTP
+    // driver does not support interactive transactions (nested writes included),
+    // so we compensate manually if a later step fails.
+    const orderId = crypto.randomUUID();
+    const order = await prisma.order.create({
+      data: {
+        id: orderId,
+        storeId: store.id,
+        customerName,
+        customerPhone,
+        customerAddress: customerAddress || "",
+        notes: notes || "",
+        total,
+      },
     });
+
+    try {
+      for (const item of orderItems) {
+        await prisma.orderItem.create({ data: { orderId, ...item } });
+      }
+    } catch (error) {
+      await prisma.order.delete({ where: { id: orderId } }).catch(() => undefined);
+      throw error;
+    }
+
+    const decremented: typeof items = [];
+    try {
+      for (const item of items) {
+        const affected = await prisma.$executeRaw`
+          UPDATE "Product"
+          SET stock = stock - ${item.quantity}
+          WHERE id = ${item.productId}
+            AND "storeId" = ${store.id}
+            AND active = true
+            AND stock >= ${item.quantity}
+        `;
+        if (affected === 0) {
+          throw new Error("OUT_OF_STOCK");
+        }
+        decremented.push(item);
+      }
+    } catch {
+      // Roll back the stock changes that already succeeded and remove the order.
+      await Promise.all(
+        decremented.map((item) =>
+          prisma
+            .$executeRaw`UPDATE "Product" SET stock = stock + ${item.quantity} WHERE id = ${item.productId}`
+            .catch(() => undefined)
+        )
+      );
+      await prisma.order.delete({ where: { id: orderId } }).catch(() => undefined);
+      return NextResponse.json(
+        { error: "المخزون غير كافٍ، حدّث السلة وجرّب تاني." },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({ order: { id: order.id, total: order.total } });
   } catch (e) {

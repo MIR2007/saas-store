@@ -22,8 +22,8 @@ type VerificationRecord = { type?: string; domain?: string; value?: string; reas
 type DnsInfo = { a: string[]; cname: string };
 
 const DEFAULT_DNS: DnsInfo = {
-  a: ["216.198.79.1", "64.29.17.1"],
-  cname: "cname.vercel-dns.com",
+  a: [],
+  cname: "customers.beepanal.store",
 };
 
 export default function StoreDomainPage() {
@@ -281,7 +281,7 @@ export default function StoreDomainPage() {
           {!automated && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              الربط التلقائي عبر Vercel مش مفعّل على السيرفر حاليًا. الدومين هيتحفظ، وفريق Bee Panal هيكمّل
+              الربط التلقائي عبر Cloudflare مش مفعّل على السيرفر حاليًا. الدومين هيتحفظ، وفريق Bee Panal هيكمّل
               التفعيل يدويًا.
             </div>
           )}
@@ -320,6 +320,13 @@ export default function StoreDomainPage() {
                 ))}
                 <DnsRow
                   type="CNAME"
+                  name="@"
+                  value={dns.cname}
+                  onCopy={() => copy(dns.cname, "cname-root")}
+                  copied={copied === "cname-root"}
+                />
+                <DnsRow
+                  type="CNAME"
                   name="www"
                   value={dns.cname}
                   onCopy={() => copy(dns.cname, "cname")}
@@ -329,13 +336,13 @@ export default function StoreDomainPage() {
 
               {verification.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="text-xs font-extrabold text-foreground">سجلات التحقق المطلوبة من Vercel</h4>
+                  <h4 className="text-xs font-extrabold text-foreground">سجلات التحقق المطلوبة من Cloudflare</h4>
                   <div className="mt-2 space-y-2">
                     {verification.map((record, index) => (
                       <DnsRow
                         key={index}
                         type={record.type || "TXT"}
-                        name={record.domain || "_vercel"}
+                        name={record.domain || "_cf-custom-hostname"}
                         value={record.value || ""}
                         onCopy={() => copy(record.value || "", `v-${index}`)}
                         copied={copied === `v-${index}`}
@@ -347,9 +354,8 @@ export default function StoreDomainPage() {
 
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-[11px] leading-relaxed text-muted">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                بديل أسرع: غيّر Nameservers الدومين إلى
-                <span className="font-mono"> ns1.vercel-dns.com</span> و
-                <span className="font-mono"> ns2.vercel-dns.com</span>.
+                لو دومينك على Cloudflare: خلي سجل الـ CNAME <b>Proxied</b> (السحابة البرتقالية)، وفعّل
+                CNAME Flattening لو بتربط الدومين الأساسي. عند مزوّدين تانيين استخدم ALIAS/ANAME للدومين الأساسي.
               </div>
             </div>
           )}

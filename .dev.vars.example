@@ -1,0 +1,8 @@
+# Local-only secrets for `wrangler dev` / `opennextjs-cloudflare preview`.
+# Copy this file to `.dev.vars` (gitignored) and fill in the real values.
+DATABASE_URL="postgresql://user:password@host/db?sslmode=require"
+AUTH_SECRET="replace-with-a-long-random-secret"
+
+# Cloudflare for SaaS custom hostnames (optional; enables automatic domain attach).
+CLOUDFLARE_API_TOKEN=""
+CLOUDFLARE_ZONE_ID=""

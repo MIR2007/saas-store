@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bee-panal",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-13",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "UPLOADS_KV",
+      "id": "63c029defbb14935b5761ba62eb264f2"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "beepanal.store/*",
+      "zone_name": "beepanal.store"
+    },
+    {
+      "pattern": "*.beepanal.store/*",
+      "zone_name": "beepanal.store"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "placement": {
+    "mode": "smart"
+  },
+  "workers_dev": true,
+  "preview_urls": true
+}

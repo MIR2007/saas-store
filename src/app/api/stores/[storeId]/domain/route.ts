@@ -4,13 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { cleanDomainInput, isValidDomain, subdomainFor, PLATFORM_DOMAIN } from "@/lib/domains";
 import {
-  addProjectDomain,
-  getDomainConfig,
-  getProjectDomain,
+  addCustomHostname,
+  cloudflareDomainError,
+  cloudflareDomainsConfigured,
+  getCustomHostname,
+  isCustomHostnameActive,
   recommendedDns,
-  removeProjectDomain,
-  vercelDomainsConfigured,
-} from "@/lib/vercel-domains";
+  removeCustomHostname,
+  verificationRecords,
+} from "@/lib/cloudflare-domains";
 import { z } from "zod";
 
 const schema = z.object({ domain: z.string().min(3) });
@@ -28,19 +30,6 @@ function parseVerification(raw: string) {
   }
 }
 
-function vercelError(data: any) {
-  const code = data?.error?.code || data?.code;
-  const map: Record<string, string> = {
-    domain_already_in_use: "الدومين ده مربوط بمشروع تاني على Vercel. لازم تشيله من المشروع القديم الأول.",
-    domain_already_exists: "الدومين مضاف بالفعل لنفس المشروع.",
-    invalid_domain: "صيغة الدومين غير صحيحة.",
-    forbidden: "مش قادرين نضيف الدومين تلقائيًا. تواصل مع الدعم.",
-    invalidToken: "ربط Vercel محتاج تجديد الصلاحية. تواصل مع الدعم.",
-    not_authorized: "صلاحية Vercel غير كافية. تواصل مع الدعم.",
-  };
-  return map[code] || data?.error?.message || "مش قادرين نضيف الدومين دلوقتي. جرّب تاني.";
-}
-
 export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId]/domain">) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
@@ -48,21 +37,26 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId
   const store = await ownsStore(storeId, session.userId);
   if (!store) return NextResponse.json({ error: "غير موجود" }, { status: 404 });
 
-  let dns = recommendedDns(null);
-  if (store.customDomain && vercelDomainsConfigured()) {
-    const config = await getDomainConfig(store.customDomain);
-    if (config.ok) dns = recommendedDns(config.data);
+  let verification = parseVerification(store.domainVerification);
+  let status = store.customDomainStatus;
+
+  if (store.customDomain && cloudflareDomainsConfigured()) {
+    const hostname = await getCustomHostname(store.customDomain);
+    if (hostname.ok && hostname.data) {
+      verification = verificationRecords(hostname.data);
+      status = isCustomHostnameActive(hostname.data) ? "active" : "pending";
+    }
   }
 
   return NextResponse.json({
     subdomain: subdomainFor(store.slug),
     subdomainUrl: `https://${subdomainFor(store.slug)}`,
     customDomain: store.customDomain,
-    status: store.customDomainStatus,
-    verification: parseVerification(store.domainVerification),
-    automated: vercelDomainsConfigured(),
+    status,
+    verification,
+    automated: cloudflareDomainsConfigured(),
     platformDomain: PLATFORM_DOMAIN,
-    dns,
+    dns: recommendedDns(),
   });
 }
 
@@ -104,35 +98,20 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
   let automated = false;
   let warning = "";
 
-  const added = await addProjectDomain(domain);
-  if (added.ok) {
+  const added = await addCustomHostname(domain);
+  if (added.ok && added.data) {
     automated = true;
-    verification = added.data?.verification || [];
-    // `verified` means Vercel verified ownership; `configuredBy` means DNS is
-    // actually pointing at Vercel, so only then is the domain live.
-    if (added.data?.verified && added.data?.configuredBy) status = "active";
+    verification = verificationRecords(added.data);
+    if (isCustomHostnameActive(added.data)) status = "active";
   } else if (added.status === 503) {
     warning = "الإضافة التلقائية غير مفعّلة حاليًا. الدومين اتحفظ، وفريق Bee Panal هيفعّله لك.";
-  } else if (
-    added.status === 401 ||
-    added.status === 403 ||
-    added.data?.error?.code === "forbidden" ||
-    added.data?.error?.code === "invalidToken"
-  ) {
-    // The stored Vercel token is missing/expired. Save the domain anyway so the
-    // merchant sees the DNS instructions and support can attach it manually.
+  } else if (added.status === 401 || added.status === 403) {
+    // The stored Cloudflare token is missing/expired. Save the domain anyway so
+    // the merchant sees the DNS instructions and support can attach it manually.
     automated = false;
-    warning = "الربط التلقائي عبر Vercel مش متاح حاليًا. الدومين اتحفظ، وفريق Bee Panal هيكمّل التفعيل.";
+    warning = "الربط التلقائي عبر Cloudflare مش متاح حاليًا. الدومين اتحفظ، وفريق Bee Panal هيكمّل التفعيل.";
   } else {
-    // The domain may already be attached to this same project.
-    const existing = await getProjectDomain(domain);
-    if (existing.ok) {
-      automated = true;
-      verification = existing.data?.verification || [];
-      if (existing.data?.verified && existing.data?.configuredBy) status = "active";
-    } else {
-      return NextResponse.json({ error: vercelError(added.data) }, { status: 400 });
-    }
+    return NextResponse.json({ error: cloudflareDomainError(added) }, { status: 400 });
   }
 
   const updated = await prisma.store.update({
@@ -146,10 +125,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
     select: { customDomain: true, customDomainStatus: true },
   });
 
-  let dns = recommendedDns(null);
-  const config = await getDomainConfig(domain);
-  if (config.ok) dns = recommendedDns(config.data);
-
   return NextResponse.json({
     ok: true,
     customDomain: updated.customDomain,
@@ -158,7 +133,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
     automated,
     warning,
     token,
-    dns,
+    dns: recommendedDns(),
   });
 }
 
@@ -172,18 +147,16 @@ export async function PATCH(_req: Request, ctx: RouteContext<"/api/stores/[store
     return NextResponse.json({ error: "مفيش دومين مخصص محفوظ" }, { status: 400 });
   }
 
-  const existing = await getProjectDomain(store.customDomain);
-  if (!existing.ok) {
+  const existing = await getCustomHostname(store.customDomain);
+  if (!existing.ok || !existing.data) {
     return NextResponse.json(
-      { error: vercelError(existing.data), status: store.customDomainStatus },
+      { error: cloudflareDomainError(existing), status: store.customDomainStatus },
       { status: 400 }
     );
   }
 
-  const verified = Boolean(existing.data?.verified);
-  const live = verified && Boolean(existing.data?.configuredBy);
-  const verification = existing.data?.verification || [];
-  const status = live ? "active" : "pending";
+  const verification = verificationRecords(existing.data);
+  const status = isCustomHostnameActive(existing.data) ? "active" : "pending";
 
   await prisma.store.update({
     where: { id: storeId },
@@ -193,16 +166,12 @@ export async function PATCH(_req: Request, ctx: RouteContext<"/api/stores/[store
     },
   });
 
-  let dns = recommendedDns(null);
-  const config = await getDomainConfig(store.customDomain);
-  if (config.ok) dns = recommendedDns(config.data);
-
   return NextResponse.json({
     status,
-    verified,
+    verified: status === "active",
     verification,
-    configuredBy: existing.data?.configuredBy || null,
-    dns,
+    sslStatus: existing.data.ssl?.status || null,
+    dns: recommendedDns(),
   });
 }
 
@@ -215,9 +184,9 @@ export async function DELETE(_req: Request, ctx: RouteContext<"/api/stores/[stor
 
   if (store.customDomain) {
     try {
-      await removeProjectDomain(store.customDomain);
+      await removeCustomHostname(store.customDomain);
     } catch {
-      // Continue clearing the local record even if Vercel is unavailable.
+      // Continue clearing the local record even if Cloudflare is unavailable.
     }
   }
 
