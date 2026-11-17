@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { extractSubdomain, isPlatformHost, normalizeHost } from "@/lib/domains";
+import { extractSubdomain, isPlatformHost, normalizeHost, PLATFORM_URL } from "@/lib/domains";
 
 const COOKIE_NAME = "eo_session";
 const SECRET = new TextEncoder().encode(
@@ -9,7 +9,7 @@ const SECRET = new TextEncoder().encode(
 );
 
 /** Resolve a custom domain to a store slug through the public API route. */
-async function slugForCustomDomain(request: NextRequest, host: string) {
+async function slugForCustomDomain(host: string) {
   if (
     !host.includes(".") ||
     host.endsWith(".vercel.app") ||
@@ -20,7 +20,9 @@ async function slugForCustomDomain(request: NextRequest, host: string) {
     return null;
   }
   try {
-    const url = new URL("/api/public/resolve-domain", request.nextUrl.origin);
+    // Always resolve through the platform hostname. Fetching the custom host
+    // itself would re-enter this middleware and recurse.
+    const url = new URL("/api/public/resolve-domain", PLATFORM_URL);
     url.searchParams.set("host", host);
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
@@ -60,7 +62,7 @@ export async function proxy(request: NextRequest) {
 
   const platform = isPlatformHost(host);
   if (!platform) {
-    const slug = await slugForCustomDomain(request, host);
+    const slug = await slugForCustomDomain(host);
     if (slug) return rewriteToStore(request, slug);
     // Unknown host: let the platform 404 naturally.
     return NextResponse.next();
