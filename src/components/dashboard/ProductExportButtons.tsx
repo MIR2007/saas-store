@@ -78,6 +78,7 @@ export default function ProductExportButtons({
       "الحالة",
       "الخيارات",
       "الصورة",
+      "المعرف",
     ];
     const rows = products.map((product) => [
       product.name,
@@ -92,6 +93,7 @@ export default function ProductExportButtons({
         .map((option) => `${option.name}: ${option.values.map((value) => value.label).join(" / ")}`)
         .join(" | "),
       product.images[0] || "",
+      product.id,
     ]);
     const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
     download(

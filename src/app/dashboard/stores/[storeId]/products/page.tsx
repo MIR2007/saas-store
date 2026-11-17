@@ -2,12 +2,13 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertCircle, Eye, Package, Pencil, Plus } from "lucide-react";
+import { AlertCircle, ArrowUpDown, Eye, Package, Pencil, Plus } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatCard from "@/components/dashboard/StatCard";
 import EmptyState from "@/components/dashboard/EmptyState";
 import DeleteProductButton from "@/components/DeleteProductButton";
 import ProductExportButtons, { type ExportProduct } from "@/components/dashboard/ProductExportButtons";
+import ProductImportButtons from "@/components/dashboard/ProductImportButtons";
 import { formatMoney, formatNumber } from "@/lib/format";
 import { cardClass, primaryBtn } from "@/lib/ui";
 
@@ -84,18 +85,31 @@ export default async function ProductsPage(props: PageProps<"/dashboard/stores/[
         backLabel={store.name}
         eyebrow="الكتالوج"
         title="المنتجات"
-        subtitle="ضيف منتجاتك، ظبّط الأسعار والمخزون، وخلي متجرك جاهز للبيع."
+        subtitle="ضيف منتجاتك، ظبّط الأسعار والمخزون، أو استورد/صدّر الكتالوج بصيغة JSON أو Excel."
         icon={<Package className="h-6 w-6" />}
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <ProductExportButtons products={exportProducts} storeName={store.name} />
-            <Link href={`/dashboard/stores/${store.id}/products/new`} className={primaryBtn}>
-              <Plus className="h-4 w-4" />
-              منتج جديد
-            </Link>
-          </div>
+          <Link href={`/dashboard/stores/${store.id}/products/new`} className={primaryBtn}>
+            <Plus className="h-4 w-4" />
+            منتج جديد
+          </Link>
         }
       />
+
+      <div className={`${cardClass} mb-5 flex flex-wrap items-center justify-between gap-3 p-3`}>
+        <div className="flex items-center gap-2">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <ArrowUpDown className="h-4 w-4" />
+          </span>
+          <div>
+            <div className="text-xs font-extrabold text-foreground">استيراد وتصدير المنتجات</div>
+            <div className="text-[10px] text-muted">JSON أو Excel/CSV — بنفس صيغة التصدير</div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ProductExportButtons products={exportProducts} storeName={store.name} />
+          <ProductImportButtons storeId={store.id} />
+        </div>
+      </div>
 
       <div className="mb-7 grid grid-cols-2 gap-3.5 lg:grid-cols-3">
         <StatCard icon={Package} label="كل المنتجات" value={formatNumber(products.length)} hint="في الكتالوج" tone="amber" />
