@@ -2,10 +2,11 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CalendarClock, CreditCard, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CalendarClock, CreditCard, ShieldCheck } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { formatDate, formatMoney } from "@/lib/format";
 import { SUBSCRIPTION_PLANS } from "@/lib/plans";
+import { daysUntil, subscriptionState } from "@/lib/store-status";
 import { cardClass, secondaryBtn } from "@/lib/ui";
 import SubscriptionForm from "./SubscriptionForm";
 
@@ -52,6 +53,8 @@ export default async function SubscriptionPage(props: PageProps<"/dashboard/stor
   });
 
   const pending = requests.some((request) => request.status === "pending");
+  const state = subscriptionState(store);
+  const daysLeft = daysUntil(store.planRenewsAt);
   const planLabel =
     store.plan === "monthly"
       ? SUBSCRIPTION_PLANS.monthly.label
@@ -75,6 +78,36 @@ export default async function SubscriptionPage(props: PageProps<"/dashboard/stor
         }
       />
 
+      {state === "expired" && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/10 p-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-sm font-extrabold text-rose-700 dark:text-rose-300">الاشتراك منتهي والمتجر متوقف</div>
+            <p className="mt-0.5 text-xs leading-relaxed text-rose-700/80 dark:text-rose-300/80">
+              عملاءك مش هيقدروا يشوفوا المنتجات أو يعملوا طلبات لحد ما يتم التفعيل. حوّل قيمة الخطة وسجّل الطلب تحت.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {state === "active" && daysLeft !== null && daysLeft <= 5 && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <CalendarClock className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-sm font-extrabold text-amber-700 dark:text-amber-300">
+              {daysLeft <= 0 ? "اشتراكك بينتهي النهاردة" : `فاضل ${daysLeft} يوم على تجديد الاشتراك`}
+            </div>
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-700/80 dark:text-amber-300/80">
+              جدّد قبل تاريخ {formatDate(store.planRenewsAt!)} عشان المتجر يفضل شغال من غير توقف.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className={`${cardClass} mb-6 overflow-hidden`}>
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-center gap-4">
@@ -86,23 +119,23 @@ export default async function SubscriptionPage(props: PageProps<"/dashboard/stor
                 <h2 className="text-lg font-extrabold text-foreground">خطة {planLabel}</h2>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ring-1 ${
-                    store.planStatus === "active"
+                    state === "active"
                       ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300"
-                      : store.planStatus === "pending"
+                      : state === "pending"
                         ? "bg-amber-500/10 text-amber-700 ring-amber-500/25 dark:text-amber-300"
                         : "bg-rose-500/10 text-rose-700 ring-rose-500/25 dark:text-rose-300"
                   }`}
                 >
-                  {store.planStatus === "active"
-                    ? "نشط"
-                    : store.planStatus === "pending"
-                      ? "بانتظار التفعيل"
-                      : "منتهي"}
+                  {state === "active" ? "نشط" : state === "pending" ? "بانتظار التفعيل" : "منتهي"}
                 </span>
               </div>
               <p className="mt-1 text-xs text-muted">
                 {store.planRenewsAt
-                  ? `بيتجدد في ${formatDate(store.planRenewsAt)}`
+                  ? state === "expired"
+                    ? `انتهى في ${formatDate(store.planRenewsAt)}`
+                    : daysLeft !== null && daysLeft <= 5
+                      ? `بيتجدد في ${formatDate(store.planRenewsAt)} — فاضل ${daysLeft} يوم`
+                      : `بيتجدد في ${formatDate(store.planRenewsAt)}`
                   : "أول اشتراك بيبدأ من تاريخ تأكيد التحويل."}
               </p>
             </div>

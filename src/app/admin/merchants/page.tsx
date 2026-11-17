@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Store, Phone, Edit, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Copy,
+  CreditCard,
+  Download,
+  Edit,
+  KeyRound,
+  Phone,
+  ShieldCheck,
+  Users,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { cardClass, inputClass, labelClass, primaryBtn, secondaryBtn, dangerBtn } from "@/lib/ui";
 import { formatDate } from "@/lib/format";
@@ -11,6 +23,9 @@ export default function AdminMerchantsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [edited, setEdited] = useState<string | null>(null);
+  const [resetBusy, setResetBusy] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<{ name: string; url: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState<{ name: string; email: string; phone: string; role: string }>({
     name: "", email: "", phone: "", role: "MERCHANT",
   });
@@ -52,6 +67,37 @@ export default function AdminMerchantsPage() {
     setEdited(m.id);
   }
 
+  async function createResetLink(m: any) {
+    setResetBusy(m.id);
+    setCopied(false);
+    try {
+      const response = await fetch("/api/admin/merchants/reset-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: m.id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        alert(data.error || "مش قادرين نعمل رابط الاستعادة");
+        return;
+      }
+      setResetLink({ name: data.user?.name || m.name, url: data.url });
+    } finally {
+      setResetBusy(null);
+    }
+  }
+
+  async function copyResetLink() {
+    if (!resetLink) return;
+    try {
+      await navigator.clipboard.writeText(resetLink.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-surface" dir="rtl">
       <header className="border-b border-border bg-card/90 backdrop-blur-xl sticky top-0 z-20">
@@ -60,16 +106,28 @@ export default function AdminMerchantsPage() {
             <ShieldCheck className="h-5 w-5 text-amber-500" />
             <span className="text-sm font-extrabold text-foreground">لوحة المطور</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               href="/admin/merchants"
               className="flex items-center gap-2 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white"
             >
               <Users className="h-3 w-3" /> التجار
             </Link>
-            <button className="flex items-center gap-2 text-sm font-semibold text-foreground hover:underline">
+            <Link
+              href="/admin/subscriptions"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-surface"
+            >
+              <CreditCard className="h-3 w-3" /> الاشتراكات
+            </Link>
+            <a
+              href="/api/admin/backup"
+              className="hidden items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-surface sm:flex"
+            >
+              <Download className="h-3 w-3" /> نسخة احتياطية
+            </a>
+            <Link href="/admin" className="flex items-center gap-2 text-sm font-semibold text-foreground hover:underline">
               خروج <ArrowRight className="h-3 w-3" />
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -196,12 +254,20 @@ export default function AdminMerchantsPage() {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex gap-1.5">
+                            <div className="flex flex-wrap gap-1.5">
                               <button
                                 onClick={() => openEdit(m)}
                                 className="flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-primary hover:text-white hover:border-primary"
                               >
                                 <Edit className="h-3 w-3" /> تعديل
+                              </button>
+                              <button
+                                onClick={() => createResetLink(m)}
+                                disabled={resetBusy === m.id}
+                                className="flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface disabled:opacity-50"
+                              >
+                                <KeyRound className="h-3 w-3" />
+                                {resetBusy === m.id ? "..." : "استعادة"}
                               </button>
                             </div>
                           )}
@@ -215,6 +281,49 @@ export default function AdminMerchantsPage() {
           </div>
         )}
       </main>
+
+      {resetLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-border p-5">
+              <div>
+                <h3 className="text-sm font-extrabold text-foreground">رابط استعادة كلمة المرور</h3>
+                <p className="mt-1 text-[11px] text-muted">
+                  للتاجر: {resetLink.name} — الرابط صالح لمدة ساعة واحدة فقط.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResetLink(null)}
+                className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"
+                aria-label="إغلاق"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5">
+              <input
+                readOnly
+                value={resetLink.url}
+                onFocus={(event) => event.currentTarget.select()}
+                className={`${inputClass} font-mono text-[10px]`}
+                dir="ltr"
+              />
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                ابعت الرابط للتاجر على واتساب. لو اتفتح الرابط أكتر من مرة قبل الاستخدام، آخر رابط هو اللي هيفضل شغال.
+              </p>
+              <button
+                type="button"
+                onClick={copyResetLink}
+                className={`${primaryBtn} mt-4 w-full justify-center`}
+              >
+                {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "تم النسخ" : "نسخ الرابط"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

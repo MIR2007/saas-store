@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const schema = z.object({
@@ -34,6 +35,9 @@ async function uniqueSlug(name: string, email: string) {
 
 export async function POST(req: Request) {
   try {
+    const limit = await rateLimit("register", clientIp(req), 6, 3600);
+    if (!limit.ok) return rateLimitResponse(limit.retryAfter);
+
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
@@ -67,6 +71,7 @@ export async function POST(req: Request) {
           theme: "aura",
           plan: "trial",
           planStatus: "active",
+          planRenewsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         },
       });
       storeId = store.id;

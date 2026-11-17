@@ -7,3 +7,10 @@ ADMIN_PASSWORD="replace-with-a-strong-admin-password"
 # Cloudflare for SaaS custom hostnames (optional; enables automatic domain attach).
 CLOUDFLARE_API_TOKEN=""
 CLOUDFLARE_ZONE_ID=""
+
+# Optional: transactional email for password resets (Resend).
+RESEND_API_KEY=""
+EMAIL_FROM="Bee Panal <noreply@beepanal.store>"
+
+# Public site URL used in emails and reset links.
+NEXT_PUBLIC_SITE_URL="https://beepanal.store"

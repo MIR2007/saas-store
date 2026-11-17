@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const schema = z.object({
@@ -10,6 +11,9 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const limit = await rateLimit("login", clientIp(req), 12, 600);
+    if (!limit.ok) return rateLimitResponse(limit.retryAfter);
+
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) {

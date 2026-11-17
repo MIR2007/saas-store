@@ -1,10 +1,19 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { notFound, redirect } from "next/navigation";
-import { Wallet, CreditCard, Banknote, ArrowRight } from "lucide-react";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowDownLeft, ArrowUpRight, Banknote, CreditCard, Wallet } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { formatMoney, formatNumber } from "@/lib/format";
-import { cardClass, inputClass, labelClass, primaryBtn, secondaryBtn } from "@/lib/ui";
+import { cardClass, secondaryBtn } from "@/lib/ui";
+
+function formatDate(date: Date | string) {
+  return new Intl.DateTimeFormat("ar-EG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(date));
+}
 
 export default async function WalletPage(props: { params: Promise<{ storeId: string }> }) {
   const session = await getSession();
@@ -15,13 +24,27 @@ export default async function WalletPage(props: { params: Promise<{ storeId: str
   });
   if (!store) notFound();
 
-  // Recent wallet activity (mocked from orders for now — real transactions can be added later)
-  const orders = await prisma.order.findMany({
-    where: { storeId, status: "delivered" },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    select: { id: true, total: true, createdAt: true, customerName: true },
-  });
+  const [transactions, credits, debits] = await Promise.all([
+    prisma.walletTransaction.findMany({
+      where: { storeId },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+      include: { order: { select: { id: true, customerName: true } } },
+    }),
+    prisma.walletTransaction.aggregate({
+      where: { storeId, type: "credit" },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    prisma.walletTransaction.aggregate({
+      where: { storeId, type: "debit" },
+      _sum: { amount: true },
+      _count: true,
+    }),
+  ]);
+
+  const totalCredits = credits._sum.amount ?? 0;
+  const totalDebits = debits._sum.amount ?? 0;
 
   return (
     <div className="p-5 sm:p-6 lg:p-8">
@@ -30,8 +53,13 @@ export default async function WalletPage(props: { params: Promise<{ storeId: str
         backLabel={store.name}
         eyebrow="محفظتك"
         title="رصيد متجرك"
-        subtitle="مجموع المبيعات اللي اتصلحت واتسلمت للعملاء."
+        subtitle="كل حركة على الرصيد بتتسجل هنا — الإضافة عند تسليم الطلب والخصم عند إلغاء التسليم."
         icon={<Wallet className="h-6 w-6" />}
+        action={
+          <Link href={`/dashboard/stores/${storeId}/orders`} className={secondaryBtn}>
+            الطلبات
+          </Link>
+        }
       />
 
       <div className="mb-9 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
@@ -48,44 +76,41 @@ export default async function WalletPage(props: { params: Promise<{ storeId: str
             </div>
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            يتم تحديث الرصيد تلقائيًا जब يتم تسليم الطلب.
+            بيتحدّث تلقائيًا لما حالة الطلب تتغيّر لـ «تم التوصيل».
           </p>
         </div>
 
         <div className={`${cardClass} p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">مبيعات مسلمة</p>
-              <div className="mt-1 text-2xl font-extrabold text-foreground">
-                {formatNumber(orders.length)}
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">إجمالي الإيداعات</p>
+              <div className="mt-1 text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                {formatMoney(totalCredits, store.currency)}
               </div>
             </div>
-            <div className="grid h-14 w-14 place-items-center rounded-3xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <CreditCard className="h-7 w-7" />
+            <div className="grid h-14 w-14 place-items-center rounded-3xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <ArrowDownLeft className="h-7 w-7" />
             </div>
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            من إجمالي متجرك "{store.name}".
+            {formatNumber(credits._count)} حركة إيداع.
           </p>
         </div>
 
         <div className={`${cardClass} p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">إجمالي الإيرادات</p>
-              <div className="mt-1 text-2xl font-extrabold text-foreground">
-                {formatMoney(
-                  orders.reduce((s, o) => s + o.total, 0),
-                  store.currency
-                )}
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">إجمالي الخصومات</p>
+              <div className="mt-1 text-2xl font-extrabold text-rose-600 dark:text-rose-400">
+                {formatMoney(totalDebits, store.currency)}
               </div>
             </div>
-            <div className="grid h-14 w-14 place-items-center rounded-3xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
-              <ArrowRight className="h-7 w-7" />
+            <div className="grid h-14 w-14 place-items-center rounded-3xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
+              <ArrowUpRight className="h-7 w-7" />
             </div>
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            الطلبات اللي حالتها "تم التوصيل".
+            {formatNumber(debits._count)} حركة خصم (إلغاء تسليم).
           </p>
         </div>
 
@@ -107,62 +132,89 @@ export default async function WalletPage(props: { params: Promise<{ storeId: str
         </div>
       </div>
 
-      {/* Recent activity */}
       <div className={`${cardClass} p-6`}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-foreground">آخر الحركات</h2>
-          {orders.length === 0 && (
+          {transactions.length === 0 && (
             <span className="text-[11px] text-muted">مفيش حركات بعد</span>
           )}
         </div>
 
-        {orders.length === 0 ? (
+        {transactions.length === 0 ? (
           <div className="rounded-2xl border border-border bg-surface/50 p-10 text-center text-sm text-muted">
-            لسه مفيش طلبات تم تسليمها. أول ما يتسلم طلب من عميلك، هتظهر هنا حركة الرصيد.
+            لسه مفيش حركات على الرصيد. أول ما تسلّم طلب، هيتضاف مبلغه هنا تلقائيًا.
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-border bg-surface">
-            <table className="w-full text-sm">
-              <thead className="bg-surface/60 text-[11px] uppercase tracking-wider text-muted">
-                <tr>
-                  <th className="px-5 py-3 text-start font-bold">الطلب</th>
-                  <th className="px-5 py-3 text-start font-bold">العميل</th>
-                  <th className="px-5 py-3 text-start font-bold">المبلغ</th>
-                  <th className="px-5 py-3 text-start font-bold">الحالة</th>
-                  <th className="px-5 py-3 text-start font-bold">التاريخ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {orders.map((order) => (
-                  <tr key={order.id} className="transition-colors hover:bg-surface/60">
-                    <td className="px-5 py-3.5 font-mono text-[11px] text-foreground">
-                      #{order.id.slice(-6).toUpperCase()}
-                    </td>
-                    <td className="px-5 py-3.5 text-foreground">{order.customerName}</td>
-                    <td className="px-5 py-3.5 font-bold text-foreground">
-                      {formatMoney(order.total, store.currency)}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                        تم التوصيل
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-muted">{formatDate(order.createdAt)}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead className="bg-surface/60 text-[11px] uppercase tracking-wider text-muted">
+                  <tr>
+                    <th className="px-5 py-3 text-start font-bold">النوع</th>
+                    <th className="px-5 py-3 text-start font-bold">البيان</th>
+                    <th className="px-5 py-3 text-start font-bold">الطلب</th>
+                    <th className="px-5 py-3 text-start font-bold">المبلغ</th>
+                    <th className="px-5 py-3 text-start font-bold">التاريخ</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {transactions.map((transaction) => {
+                    const credit = transaction.type === "credit";
+                    return (
+                      <tr key={transaction.id} className="transition-colors hover:bg-surface/60">
+                        <td className="px-5 py-3.5">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              credit
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                            }`}
+                          >
+                            {credit ? (
+                              <ArrowDownLeft className="h-3 w-3" />
+                            ) : (
+                              <ArrowUpRight className="h-3 w-3" />
+                            )}
+                            {credit ? "إيداع" : "خصم"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-foreground">
+                          {transaction.description || (credit ? "مبيعات طلب" : "إلغاء تسليم")}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {transaction.order ? (
+                            <Link
+                              href={`/dashboard/stores/${storeId}/orders/${transaction.order.id}`}
+                              className="font-mono text-[11px] font-bold text-primary hover:underline"
+                            >
+                              #{transaction.order.id.slice(-6).toUpperCase()}
+                            </Link>
+                          ) : (
+                            <span className="text-[11px] text-muted">—</span>
+                          )}
+                          {transaction.order?.customerName && (
+                            <div className="text-[10px] text-muted">{transaction.order.customerName}</div>
+                          )}
+                        </td>
+                        <td
+                          className={`px-5 py-3.5 font-bold ${
+                            credit
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {credit ? "+" : "−"} {formatMoney(transaction.amount, store.currency)}
+                        </td>
+                        <td className="px-5 py-3.5 text-xs text-muted">{formatDate(transaction.createdAt)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
-}
-
-function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat("ar-EG", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(date));
 }

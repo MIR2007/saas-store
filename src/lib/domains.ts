@@ -25,8 +25,16 @@ export function subdomainFor(slug: string) {
   return `${slug}.${PLATFORM_DOMAIN}`;
 }
 
-export function storePublicUrl(slug: string, customDomain?: string | null) {
-  if (customDomain) return `https://${customDomain}`;
+export function storePublicUrl(
+  slug: string,
+  customDomain?: string | null,
+  customDomainStatus?: string | null
+) {
+  // Pending domains are not serving traffic yet (Cloudflare for SaaS is not
+  // enabled), so canonical/OG/sitemap URLs must stay on the free subdomain.
+  if (customDomain && (!customDomainStatus || customDomainStatus === "active")) {
+    return `https://${customDomain}`;
+  }
   return `https://${subdomainFor(slug)}`;
 }
 

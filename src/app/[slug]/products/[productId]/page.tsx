@@ -1,18 +1,89 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
 import StoreHeader from "@/components/storefront/StoreHeader";
 import StoreFooter from "@/components/storefront/StoreFooter";
+import StoreClosed from "@/components/storefront/StoreClosed";
+import { storeIsLive } from "@/lib/store-status";
+import { storePublicUrl } from "@/lib/domains";
 import { formatMoney } from "@/lib/format";
 import { getStoreBase } from "@/lib/store-url";
 import { getStoreTheme } from "@/lib/themes";
 import { ChevronLeft, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 
+function absoluteImage(image: string, base: string) {
+  try {
+    return new URL(image, base).toString();
+  } catch {
+    return image;
+  }
+}
+
+export async function generateMetadata(
+  props: PageProps<"/[slug]/products/[productId]">
+): Promise<Metadata> {
+  const { slug, productId } = await props.params;
+  const store = await prisma.store.findUnique({
+    where: { slug },
+    select: { id: true, name: true, slug: true, customDomain: true, customDomainStatus: true },
+  });
+  if (!store) return { title: "المنتج غير موجود", robots: { index: false, follow: false } };
+
+  const product = await prisma.product.findFirst({
+    where: { id: productId, storeId: store.id, active: true },
+    select: { id: true, name: true, description: true, images: true, price: true },
+  });
+  if (!product) return { title: "المنتج غير موجود", robots: { index: false, follow: false } };
+
+  const base = storePublicUrl(store.slug, store.customDomain, store.customDomainStatus);
+  const url = `${base}/products/${product.id}`;
+  const description = (
+    product.description ||
+    `اطلب ${product.name} من ${store.name} — دفع عند الاستلام وشحن سريع.`
+  )
+    .replace(/\s+/g, " ")
+    .slice(0, 160);
+
+  let images: string[] = [];
+  try {
+    const parsed = JSON.parse(product.images || "[]");
+    if (Array.isArray(parsed)) images = parsed.filter(Boolean).slice(0, 4);
+  } catch {
+    images = [];
+  }
+  const ogImages = images.length
+    ? images.map((image) => absoluteImage(image, base))
+    : [`${base}/opengraph-image`];
+
+  return {
+    title: product.name,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      title: product.name,
+      description,
+      url,
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: ogImages,
+    },
+  };
+}
+
 export default async function ProductDetailPage(props: PageProps<"/[slug]/products/[productId]">) {
   const { slug, productId } = await props.params;
   const store = await prisma.store.findUnique({ where: { slug } });
-  if (!store || !store.active) notFound();
+  if (!store) notFound();
+  if (!storeIsLive(store)) {
+    return <StoreClosed store={{ name: store.name, logo: store.logo, phone: store.phone }} />;
+  }
 
   const [product, categories] = await Promise.all([
     prisma.product.findFirst({
@@ -35,9 +106,36 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
   const base = await getStoreBase(store.slug, store.customDomain);
   const onSale = product.comparePrice && product.comparePrice > product.price;
   const discount = onSale ? Math.round((1 - product.price / product.comparePrice!) * 100) : 0;
+  const canonicalUrl = `${storePublicUrl(store.slug, store.customDomain, store.customDomainStatus)}/products/${product.id}`;
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description || undefined,
+    image: images.length ? images.map((image) => absoluteImage(image, canonicalUrl)) : undefined,
+    sku: product.id,
+    brand: { "@type": "Brand", name: store.name },
+    offers: {
+      "@type": "Offer",
+      url: canonicalUrl,
+      priceCurrency: store.currency || "EGP",
+      price: product.price,
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@type": "Organization", name: store.name },
+    },
+  };
 
   return (
     <div className="min-h-screen bg-surface">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <StoreHeader
         store={{ name: store.name, slug: store.slug, logo: store.logo, phone: store.phone }}
         base={base}
@@ -137,6 +235,11 @@ export default async function ProductDetailPage(props: PageProps<"/[slug]/produc
                   ? `الشحن: ${formatMoney(product.shippingPrice, store.currency)}`
                   : "الشحن مجاني"}
               </span>
+              {store.freeShippingThreshold > 0 && (
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  شحن مجاني فوق {formatMoney(store.freeShippingThreshold, store.currency)}
+                </span>
+              )}
             </div>
 
             {product.description && (

@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowUpRight,
+  CalendarClock,
   CalendarDays,
   Clock,
   Eye,
@@ -23,6 +25,7 @@ import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { primaryBtn, secondaryBtn, cardClass } from "@/lib/ui";
 import { storePublicUrl } from "@/lib/domains";
 import { getStoreTheme } from "@/lib/themes";
+import { daysUntil, subscriptionState } from "@/lib/store-status";
 
 function firstImage(raw: string | undefined | null) {
   try {
@@ -53,6 +56,8 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
   ]);
 
   const revenue = revenueAgg._sum.total ?? 0;
+  const subState = subscriptionState(store);
+  const daysLeft = daysUntil(store.planRenewsAt);
 
   const quickLinks = [
     {
@@ -100,6 +105,55 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
           </>
         }
       />
+
+      {/* Subscription reminder */}
+      {subState === "expired" && (
+        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
+              <AlertTriangle className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-sm font-extrabold text-rose-700 dark:text-rose-300">اشتراك المتجر منتهي</div>
+              <p className="mt-0.5 text-xs leading-relaxed text-rose-700/80 dark:text-rose-300/80">
+                المتجر متوقف للعملاء ومش بيستقبل طلبات جديدة. فعّل الاشتراك عشان ترجع تبيع.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/dashboard/stores/${store.id}/subscription`}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-rose-700"
+          >
+            تجديد الاشتراك
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
+
+      {subState === "active" && daysLeft !== null && daysLeft <= 5 && (
+        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <CalendarClock className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-sm font-extrabold text-amber-700 dark:text-amber-300">
+                {daysLeft <= 0 ? "اشتراكك بينتهي النهاردة" : `اشتراكك بيتجدد خلال ${daysLeft} يوم`}
+              </div>
+              <p className="mt-0.5 text-xs leading-relaxed text-amber-700/80 dark:text-amber-300/80">
+                جدّد دلوقتي عشان متوقفش استقبال الطلبات. التجديد بيمتد من تاريخ الانتهاء الحالي.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/dashboard/stores/${store.id}/subscription`}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-amber-600"
+          >
+            تجديد الاشتراك
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Store banner */}
       <div

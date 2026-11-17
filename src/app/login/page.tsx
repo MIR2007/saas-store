@@ -93,6 +93,11 @@ function LoginForm() {
                 dir="ltr"
               />
             </div>
+            <div className="text-end">
+              <Link href="/forgot-password" className="text-xs font-bold text-primary hover:underline">
+                نسيت كلمة المرور؟
+              </Link>
+            </div>
             {error && (
               <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
                 {error}

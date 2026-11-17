@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { CheckCircle2, MapPin, Phone, ShoppingBag, Truck } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { getStoreBase } from "@/lib/store-url";
 import { getStoreTheme } from "@/lib/themes";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function OrderConfirmationPage(props: PageProps<"/[slug]/order/[orderId]">) {
   const { slug, orderId } = await props.params;

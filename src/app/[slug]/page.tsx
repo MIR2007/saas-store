@@ -4,7 +4,9 @@ import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import StoreHeader from "@/components/storefront/StoreHeader";
 import StoreFooter from "@/components/storefront/StoreFooter";
+import StoreClosed from "@/components/storefront/StoreClosed";
 import ViewTracker from "@/components/storefront/ViewTracker";
+import { storeIsLive } from "@/lib/store-status";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -19,6 +21,7 @@ import {
   Truck,
 } from "lucide-react";
 import { formatNumber } from "@/lib/format";
+import { storePublicUrl } from "@/lib/domains";
 import { getStoreBase } from "@/lib/store-url";
 import { getStoreTheme } from "@/lib/themes";
 import { whatsappUrl } from "@/lib/whatsapp";
@@ -38,7 +41,10 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
   const categoryFilter = (searchParams as any)?.category as string | undefined;
 
   const store = await prisma.store.findUnique({ where: { slug } });
-  if (!store || !store.active) notFound();
+  if (!store) notFound();
+  if (!storeIsLive(store)) {
+    return <StoreClosed store={{ name: store.name, logo: store.logo, phone: store.phone }} />;
+  }
 
   const [allProducts, categories] = await Promise.all([
     prisma.product.findMany({
@@ -66,8 +72,36 @@ export default async function StoreHome(props: PageProps<"/[slug]">) {
   const countFor = (categoryId: string) =>
     allProducts.filter((product) => product.categoryId === categoryId).length;
 
+  const storeUrl = storePublicUrl(store.slug, store.customDomain, store.customDomainStatus);
+  let logoUrl: string | undefined;
+  if (store.logo) {
+    try {
+      logoUrl = new URL(store.logo, storeUrl).toString();
+    } catch {
+      logoUrl = undefined;
+    }
+  }
+  const storeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    name: store.name,
+    description:
+      store.description ||
+      `تسوق من ${store.name} أونلاين — دفع عند الاستلام وشحن سريع لكل محافظات مصر.`,
+    url: storeUrl,
+    image: logoUrl,
+    telephone: store.phone || undefined,
+    currenciesAccepted: store.currency || "EGP",
+    paymentAccepted: "Cash on Delivery",
+    address: { "@type": "PostalAddress", addressCountry: "EG" },
+  };
+
   return (
     <div className="min-h-screen bg-surface">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }}
+      />
       <ViewTracker slug={store.slug} />
       <StoreHeader
         store={{ name: store.name, slug: store.slug, logo: store.logo, phone: store.phone }}

@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
+  UserRound,
   Wallet,
   X,
 } from "lucide-react";
@@ -354,6 +355,14 @@ export default function DashboardShell({
               <div className="truncate text-sm font-bold text-foreground">{user.name}</div>
               <div className="truncate text-[11px] text-muted">{user.email}</div>
             </div>
+            <Link
+              href="/dashboard/account"
+              aria-label="بيانات حسابي"
+              title="بيانات حسابي"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground"
+            >
+              <UserRound className="h-4 w-4" />
+            </Link>
             <button
               onClick={logout}
               aria-label="تسجيل خروج"
@@ -410,6 +419,13 @@ export default function DashboardShell({
                   <div className="truncate text-sm font-bold">{user.name}</div>
                   <div className="truncate text-[11px] text-muted">{user.email}</div>
                 </div>
+                <Link
+                  href="/dashboard/account"
+                  aria-label="بيانات حسابي"
+                  className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground"
+                >
+                  <UserRound className="h-4 w-4" />
+                </Link>
                 <button
                   onClick={logout}
                   aria-label="تسجيل خروج"

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getSession } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,9 @@ export async function POST(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
+
+  const limit = await rateLimit("upload-image", session.userId, 60, 600);
+  if (!limit.ok) return rateLimitResponse(limit.retryAfter);
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;

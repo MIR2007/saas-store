@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 import {
   parseCsvProducts,
@@ -34,6 +35,9 @@ function categoryKey(name: string) {
 export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId]/products/import">) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+
+  const limit = await rateLimit("product-import", session.userId, 5, 3600);
+  if (!limit.ok) return rateLimitResponse(limit.retryAfter);
 
   const { storeId } = await ctx.params;
   const store = await prisma.store.findFirst({

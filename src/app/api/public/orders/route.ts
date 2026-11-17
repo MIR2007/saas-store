@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeCouponCode, validateCoupon } from "@/lib/coupons";
+import { storeIsLive } from "@/lib/store-status";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const itemSchema = z.object({
@@ -16,11 +19,15 @@ const schema = z.object({
   customerRegion: z.string().max(60).optional(),
   customerAddress: z.string().optional(),
   notes: z.string().optional(),
+  couponCode: z.string().max(40).optional(),
   items: z.array(itemSchema).min(1),
 });
 
 export async function POST(req: Request) {
   try {
+    const limit = await rateLimit("create-order", clientIp(req), 20, 600);
+    if (!limit.ok) return rateLimitResponse(limit.retryAfter);
+
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
@@ -33,11 +40,14 @@ export async function POST(req: Request) {
       customerRegion,
       customerAddress,
       notes,
+      couponCode,
       items,
     } = parsed.data;
 
     const store = await prisma.store.findUnique({ where: { slug: storeSlug } });
-    if (!store || !store.active) return NextResponse.json({ error: "المتجر غير موجود" }, { status: 404 });
+    if (!store || !storeIsLive(store)) {
+      return NextResponse.json({ error: "المتجر غير متاح حاليًا" }, { status: 404 });
+    }
 
     // Load products
     const productIds = items.map((i) => i.productId);
@@ -55,7 +65,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // Compute total
+    // Compute subtotal and shipping (store-level free shipping threshold).
     let subtotal = 0;
     let shipping = 0;
     const orderItems = items.map((item) => {
@@ -65,7 +75,29 @@ export async function POST(req: Request) {
       const name = item.variant ? `${p.name} (${item.variant})` : p.name;
       return { productId: p.id, name, price: p.price, quantity: item.quantity };
     });
-    const total = subtotal + shipping;
+    subtotal = Math.round(subtotal * 100) / 100;
+
+    if (store.freeShippingThreshold > 0 && subtotal >= store.freeShippingThreshold) {
+      shipping = 0;
+    }
+    shipping = Math.round(shipping * 100) / 100;
+
+    // Validate coupon (the client-side preview is re-checked here).
+    let coupon: Awaited<ReturnType<typeof prisma.coupon.findFirst>> = null;
+    let discount = 0;
+    const normalizedCode = couponCode ? normalizeCouponCode(couponCode) : "";
+    if (normalizedCode) {
+      coupon = await prisma.coupon.findFirst({
+        where: { storeId: store.id, code: normalizedCode },
+      });
+      const result = validateCoupon(coupon, subtotal);
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      discount = result.discount;
+    }
+
+    const total = Math.round((subtotal + shipping - discount) * 100) / 100;
 
     // Create the order first, then its items and stock updates. Neon's HTTP
     // driver does not support interactive transactions (nested writes included),
@@ -81,6 +113,9 @@ export async function POST(req: Request) {
         customerRegion: customerRegion || "",
         customerAddress: customerAddress || "",
         notes: notes || "",
+        subtotal,
+        discount,
+        couponCode: normalizedCode,
         shipping,
         total,
       },
@@ -127,7 +162,36 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ order: { id: order.id, total: order.total } });
+    // Claim a coupon use atomically. If another order took the last use while
+    // this one was being created, roll everything back.
+    if (coupon && discount > 0) {
+      const claimed = await prisma.$executeRaw`
+        UPDATE "Coupon"
+        SET "usedCount" = "usedCount" + 1
+        WHERE id = ${coupon.id}
+          AND active = true
+          AND ("maxUses" = 0 OR "usedCount" < "maxUses")
+          AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
+      `;
+      if (claimed === 0) {
+        await Promise.all(
+          decremented.map((item) =>
+            prisma
+              .$executeRaw`UPDATE "Product" SET stock = stock + ${item.quantity} WHERE id = ${item.productId}`
+              .catch(() => undefined)
+          )
+        );
+        await prisma.order.delete({ where: { id: orderId } }).catch(() => undefined);
+        return NextResponse.json(
+          { error: "كود الخصم لم يعد متاحًا. جرّب من غير الكود." },
+          { status: 409 }
+        );
+      }
+    }
+
+    return NextResponse.json({
+      order: { id: order.id, subtotal, discount, shipping, total },
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "خطأ في الخادم" }, { status: 500 });

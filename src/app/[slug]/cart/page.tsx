@@ -24,6 +24,8 @@ export default function CartPage() {
   const [currency, setCurrency] = useState("EGP");
   const [storeName, setStoreName] = useState("");
   const [base, setBase] = useState(`/${slug}`);
+  const [live, setLive] = useState(true);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
 
   useEffect(() => {
     const key = `cart:${slug}`;
@@ -35,6 +37,8 @@ export default function CartPage() {
         if (d.store) {
           setCurrency(d.store.currency || "EGP");
           setStoreName(d.store.name);
+          setLive(d.store.live !== false);
+          setFreeShippingThreshold(Number(d.store.freeShippingThreshold) || 0);
           const host = window.location.hostname.toLowerCase();
           const isOwnHost =
             host === `${slug}.beepanal.store` ||
@@ -58,9 +62,37 @@ export default function CartPage() {
   }
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
-  const shippingTotal = cart.reduce((s, c) => s + (c.shipping || 0) * c.quantity, 0);
+  const baseShipping = cart.reduce((s, c) => s + (c.shipping || 0) * c.quantity, 0);
+  const freeShipping = freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
+  const shippingTotal = freeShipping ? 0 : baseShipping;
   const total = subtotal + shippingTotal;
   const count = cart.reduce((s, c) => s + c.quantity, 0);
+  const remainingForFreeShipping =
+    freeShippingThreshold > 0 && subtotal < freeShippingThreshold
+      ? freeShippingThreshold - subtotal
+      : 0;
+
+  if (!live) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface px-4">
+        <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-amber-500/10 text-amber-600">
+            <ShoppingBag className="h-8 w-8" />
+          </span>
+          <h1 className="mt-4 text-xl font-extrabold text-foreground">المتجر غير متاح حاليًا</h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted">
+            المتجر مش بيستقبل طلبات دلوقتي. جرّب تاني بعد شوية.
+          </p>
+          <Link
+            href={`${base}` || "/"}
+            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white"
+          >
+            رجوع للمتجر
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -179,6 +211,16 @@ export default function CartPage() {
                 <span className="font-semibold text-foreground">{formatMoney(subtotal, currency)}</span>
               </div>
             </div>
+            {remainingForFreeShipping > 0 && (
+              <div className="mt-3 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                باقي {formatMoney(remainingForFreeShipping, currency)} وتاخد شحن مجاني.
+              </div>
+            )}
+            {freeShipping && baseShipping > 0 && (
+              <div className="mt-3 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                تم تفعيل الشحن المجاني 🎉
+              </div>
+            )}
             <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
               <span className="text-sm font-bold text-foreground">المجموع</span>
               <span className="text-2xl font-extrabold text-foreground">{formatMoney(total, currency)}</span>

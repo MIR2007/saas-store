@@ -14,6 +14,7 @@ import {
   Settings,
   Store,
   Trash2,
+  Truck,
   Wallet,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
@@ -42,6 +43,7 @@ export default function StoreSettingsPage() {
   const [phone, setPhone] = useState("");
   const [themeColor, setThemeColor] = useState("#d97706");
   const [currency, setCurrency] = useState("EGP");
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
   const [active, setActive] = useState(true);
   const [customDomain, setCustomDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,6 +66,7 @@ export default function StoreSettingsPage() {
           setPhone(s.phone || "");
           setThemeColor(s.themeColor || "#d97706");
           setCurrency(s.currency || "EGP");
+          setFreeShippingThreshold(Number(s.freeShippingThreshold) || 0);
           setActive(s.active);
           setCustomDomain(s.customDomainStatus === "active" ? s.customDomain : null);
         }
@@ -101,7 +104,16 @@ export default function StoreSettingsPage() {
       const res = await fetch(`/api/stores/${storeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, themeColor, currency, active, logo, phone }),
+        body: JSON.stringify({
+          name,
+          description,
+          themeColor,
+          currency,
+          active,
+          logo,
+          phone,
+          freeShippingThreshold: Number(freeShippingThreshold) || 0,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -305,6 +317,26 @@ export default function StoreSettingsPage() {
           </select>
           <p className="mt-1.5 text-[11px] text-muted">
             كل الأسعار في المتجر هتظهر بالعملة دي. الجنيه المصري هو الافتراضي.
+          </p>
+        </section>
+
+        <section className={`${cardClass} p-6`}>
+          <div className="mb-5 flex items-center gap-2">
+            <Truck className="h-5 w-5 text-primary" />
+            <h2 className="font-extrabold text-foreground">الشحن المجاني</h2>
+          </div>
+          <label className={labelClass}>شحن مجاني للطلبات فوق مبلغ (اختياري)</label>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={freeShippingThreshold}
+            onChange={(e) => setFreeShippingThreshold(Number(e.target.value) || 0)}
+            className={inputClass}
+            dir="ltr"
+          />
+          <p className="mt-1.5 text-[11px] text-muted">
+            سيبه 0 لو مش عايز تفعّله. بيتحسب على إجمالي المنتجات قبل الخصم.
           </p>
         </section>
 
