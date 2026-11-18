@@ -6,19 +6,53 @@ import Link from "next/link";
 import {
   Calendar,
   Check,
+  FileText,
   MapPin,
+  MessageCircle,
   Phone,
   ShoppingBag,
   StickyNote,
+  Truck,
   User,
   Wallet,
+  Zap,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { formatDate, formatMoney, formatNumber, ORDER_STATUS, type OrderStatus } from "@/lib/format";
+import { orderShortId, orderWhatsAppMessage } from "@/lib/order-docs";
+import { whatsappChatUrl } from "@/lib/whatsapp";
 import { cardClass, primaryBtn, secondaryBtn, inputClass, labelClass } from "@/lib/ui";
 
 const statuses: OrderStatus[] = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
+
+type OrderItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  product?: { images: string | null } | null;
+};
+
+type OrderDetail = {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  customerCountry: string;
+  customerRegion: string;
+  customerAddress: string;
+  notes: string;
+  status: OrderStatus;
+  subtotal: number;
+  discount: number;
+  couponCode: string;
+  shipping: number;
+  total: number;
+  createdAt: string;
+  items: OrderItem[];
+};
+
+type StoreInfo = { name: string; currency: string };
 
 function firstImage(raw: string | undefined | null) {
   try {
@@ -35,7 +69,8 @@ export default function OrderDetailPage() {
   const orderId = params.orderId as string;
   const router = useRouter();
 
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [store, setStore] = useState<StoreInfo | null>(null);
   const [currency, setCurrency] = useState("EGP");
   const [status, setStatus] = useState<OrderStatus>("pending");
   const [loading, setLoading] = useState(false);
@@ -47,6 +82,7 @@ export default function OrderDetailPage() {
       fetch(`/api/stores/${storeId}`).then((r) => r.json()),
     ]).then(([orderData, storeData]) => {
       setOrder(orderData.order);
+      setStore(storeData.store);
       setStatus(orderData.order?.status || "pending");
       if (storeData.store?.currency) setCurrency(storeData.store.currency);
     });
@@ -78,8 +114,23 @@ export default function OrderDetailPage() {
     );
   }
 
-  const itemCount = order.items.reduce((s: number, it: any) => s + it.quantity, 0);
-  const shortId = `#${String(order.id).slice(-8).toUpperCase()}`;
+  const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const shortId = orderShortId(order.id);
+  const storeName = store?.name || "متجرك";
+  const wa = whatsappChatUrl(
+    order.customerPhone,
+    orderWhatsAppMessage({
+      customerName: order.customerName,
+      storeName,
+      orderId: order.id,
+      status: order.status,
+      total: order.total,
+      currency,
+      items: order.items,
+    })
+  );
+  const invoiceUrl = `/print/${storeId}/orders/${orderId}?doc=invoice`;
+  const labelUrl = `/print/${storeId}/orders/${orderId}?doc=label`;
 
   return (
     <div className="p-5 sm:p-6 lg:p-8">
@@ -167,7 +218,7 @@ export default function OrderDetailPage() {
               </span>
             </div>
             <ul className="divide-y divide-border">
-              {order.items.map((it: any) => {
+              {order.items.map((it) => {
                 const image = firstImage(it.product?.images);
                 return (
                   <li key={it.id} className="flex items-center gap-3 py-3.5">
@@ -217,15 +268,69 @@ export default function OrderDetailPage() {
                 <div className="flex justify-between text-muted">
                   <span>المنتجات</span>
                   <span className="font-semibold text-foreground">
-                    {formatMoney(Math.max(0, order.total - (order.shipping || 0)), currency)}
+                    {formatMoney(
+                      order.subtotal > 0
+                        ? order.subtotal
+                        : Math.max(0, order.total - (order.shipping || 0)),
+                      currency
+                    )}
                   </span>
                 </div>
+                {order.discount > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                    <span>خصم{order.couponCode ? ` (${order.couponCode})` : ""}</span>
+                    <span className="font-semibold" dir="ltr">
+                      - {formatMoney(order.discount, currency)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
                 <span className="text-sm font-bold text-foreground">الإجمالي</span>
                 <span className="text-2xl font-extrabold text-foreground">{formatMoney(order.total, currency)}</span>
               </div>
             </div>
+          </section>
+
+          {/* Quick actions */}
+          <section className={`${cardClass} p-6`}>
+            <h2 className="flex items-center gap-2 font-extrabold text-foreground">
+              <Zap className="h-5 w-5 text-primary" />
+              أدوات سريعة
+            </h2>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+              اطبع المستندات أو ابعت للعميل رسالة واتساب جاهزة بتفاصيل الطلب.
+            </p>
+            <div className="mt-4 space-y-2.5">
+              {wa && (
+                <a
+                  href={wa}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#25d366] px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-[#1ebe5a]"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  واتساب العميل
+                </a>
+              )}
+              <div className="grid grid-cols-2 gap-2.5">
+                <a href={invoiceUrl} target="_blank" rel="noreferrer" className={secondaryBtn}>
+                  <FileText className="h-4 w-4" />
+                  الفاتورة
+                </a>
+                <a href={labelUrl} target="_blank" rel="noreferrer" className={secondaryBtn}>
+                  <Truck className="h-4 w-4" />
+                  البوليصة
+                </a>
+              </div>
+              <a href={`tel:${order.customerPhone}`} className={`${secondaryBtn} w-full`}>
+                <Phone className="h-4 w-4" />
+                اتصال بالعميل
+              </a>
+            </div>
+            <p className="mt-3 text-center text-[10px] text-muted">
+              المستندات بتفتح في تاب جديد وجاهزة للطباعة.
+            </p>
           </section>
 
           {/* Update status */}

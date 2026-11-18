@@ -9,3 +9,11 @@ export function whatsappUrl(phone?: string | null) {
       : `20${digits}`;
   return `https://wa.me/${normalized}`;
 }
+
+/** WhatsApp chat link with an optional prefilled message. */
+export function whatsappChatUrl(phone?: string | null, text?: string) {
+  const url = whatsappUrl(phone);
+  if (!url) return null;
+  const message = (text || "").trim();
+  return message ? `${url}?text=${encodeURIComponent(message)}` : url;
+}
