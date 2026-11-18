@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
 import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { isValidEgyptMobile, normalizePhone } from "@/lib/phone";
-import { defaultShippingRates } from "@/lib/shipping";
-import { DEFAULT_STORE_COLOR, DEFAULT_STORE_THEME } from "@/lib/themes";
+import { createMerchantStore } from "@/lib/store-onboarding";
 import { z } from "zod";
 
 const schema = z.object({
@@ -14,28 +13,6 @@ const schema = z.object({
   phone: z.string().max(30).optional(),
   role: z.enum(["CUSTOMER", "MERCHANT"]).optional(),
 });
-
-function slugBase(name: string, email: string) {
-  const clean = (value: string) =>
-    value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  const base = clean(name) || clean(email.split("@")[0]) || "store";
-  return base.slice(0, 28).replace(/-+$/g, "") || "store";
-}
-
-async function uniqueSlug(name: string, email: string) {
-  const base = slugBase(name, email);
-  let slug = base;
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const existing = await prisma.store.findUnique({ where: { slug }, select: { id: true } });
-    if (!existing) return slug;
-    slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
-  }
-  return `${base}-${Date.now().toString(36).slice(-5)}`;
-}
 
 export async function POST(req: Request) {
   try {
@@ -67,28 +44,17 @@ export async function POST(req: Request) {
     }
 
     const passwordHash = await hashPassword(password);
-    const storeSlug = finalRole === "MERCHANT" ? await uniqueSlug(name, email) : null;
 
     const user = await prisma.user.create({
       data: { name, email, passwordHash, phone, role: finalRole },
     });
 
     let storeId: string | null = null;
-    if (finalRole === "MERCHANT" && storeSlug) {
-      const store = await prisma.store.create({
-        data: {
-          userId: user.id,
-          name: `متجر ${name.split(" ")[0]}`.slice(0, 60),
-          slug: storeSlug,
-          description: "",
-          currency: "EGP",
-          themeColor: DEFAULT_STORE_COLOR,
-          theme: DEFAULT_STORE_THEME,
-          shippingRates: JSON.stringify(defaultShippingRates()),
-          plan: "trial",
-          planStatus: "active",
-          planRenewsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
+    if (finalRole === "MERCHANT") {
+      const store = await createMerchantStore({
+        userId: user.id,
+        name: user.name,
+        email: user.email,
       });
       storeId = store.id;
     }

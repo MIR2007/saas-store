@@ -3,14 +3,37 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, LogOut, Package, ShieldCheck, ShoppingBag, Store, Users, Wallet } from "lucide-react";
+import { ArrowUpRight, CreditCard, LogOut, Package, ShieldCheck, ShoppingBag, Store, Users, Wallet } from "lucide-react";
 import { VERSION } from "@/lib/version";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { cardClass } from "@/lib/ui";
 
+type AdminStats = {
+  stats: {
+    users: number;
+    stores: number;
+    products: number;
+    orders: number;
+    revenue: number;
+  };
+  recentUsers: {
+    id: string;
+    name: string;
+    email: string;
+    createdAt: string;
+  }[];
+  recentOrders: {
+    id: string;
+    customerName: string;
+    total: number;
+    createdAt: string;
+    store: { name: string; slug: string; currency: string };
+  }[];
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,6 +84,20 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <Link
+              href="/admin/subscriptions"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary/90"
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              الاشتراكات
+            </Link>
+            <Link
+              href="/admin/merchants"
+              className="hidden items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:text-foreground sm:inline-flex"
+            >
+              <Users className="h-3.5 w-3.5" />
+              التجار
+            </Link>
+            <Link
               href="/"
               className="hidden items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:text-foreground sm:inline-flex"
             >
@@ -96,6 +133,44 @@ export default function AdminDashboard() {
           ))}
         </div>
 
+        <div className="mb-8 grid gap-4 sm:grid-cols-2">
+          <Link
+            href="/admin/subscriptions"
+            className={`${cardClass} group flex items-center justify-between gap-4 p-5 transition-colors hover:border-primary/40`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <CreditCard className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="font-extrabold text-foreground">إدارة الاشتراكات</div>
+                <div className="mt-0.5 text-xs text-muted">
+                  تفعيل وتمديد، مدفوعات، وملاحظات كل تاجر
+                </div>
+              </div>
+            </div>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted transition-colors group-hover:text-primary" />
+          </Link>
+
+          <Link
+            href="/admin/merchants"
+            className={`${cardClass} group flex items-center justify-between gap-4 p-5 transition-colors hover:border-primary/40`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                <Users className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="font-extrabold text-foreground">إدارة التجار</div>
+                <div className="mt-0.5 text-xs text-muted">
+                  بيانات التجار، أرقام الموبايل، وصلاحيات الحسابات
+                </div>
+              </div>
+            </div>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted transition-colors group-hover:text-primary" />
+          </Link>
+        </div>
+
         <div className="grid gap-5 lg:grid-cols-2">
           <div className={`${cardClass} overflow-hidden`}>
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
@@ -105,7 +180,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <ul className="divide-y divide-border">
-              {data.recentUsers.map((u: any) => (
+              {data.recentUsers.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-3 px-5 py-3">
                   <div className="flex items-center gap-2.5">
                     <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-[11px] font-bold text-white">
@@ -130,7 +205,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <ul className="divide-y divide-border">
-              {data.recentOrders.map((o: any) => (
+              {data.recentOrders.map((o) => (
                 <li key={o.id} className="flex items-center justify-between gap-3 px-5 py-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-bold text-foreground">{o.customerName}</div>

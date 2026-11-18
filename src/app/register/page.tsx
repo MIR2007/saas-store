@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, Check, Sparkles } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 import LanguageToggle from "@/components/LanguageToggle";
 import Logo from "@/components/Logo";
+import GoogleButton from "@/components/GoogleButton";
+import GoogleAuthError from "@/components/GoogleAuthError";
 import { isValidEgyptMobile } from "@/lib/phone";
 import { inputClass, labelClass } from "@/lib/ui";
 
@@ -84,6 +86,26 @@ export default function RegisterPage() {
               </span>
             ))}
           </div>
+
+          <div className="mt-5">
+            <GoogleButton
+              href="/api/auth/google?intent=merchant"
+              label="التسجيل كتاجر بحساب جوجل"
+            />
+            <p className="mt-1.5 text-center text-[10px] leading-relaxed text-muted">
+              هيتم إنشاء متجر تجريبي فورًا، وبعدها تضيف رقم الموبايل من لوحة التحكم.
+            </p>
+          </div>
+
+          <div className="my-5 flex items-center gap-3 text-[11px] font-bold text-muted">
+            <span className="h-px flex-1 bg-border" />
+            أو سجّل بالبريد
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <Suspense fallback={null}>
+            <GoogleAuthError />
+          </Suspense>
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
             <div>

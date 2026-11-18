@@ -13,4 +13,11 @@ RESEND_API_KEY=""
 EMAIL_FROM="Bee Panal <noreply@beepanal.store>"
 
 # Public site URL used in emails and reset links.
-NEXT_PUBLIC_SITE_URL="https://beepanal.store"
+NEXT_PUBLIC_SITE_URL
+
+# Google OAuth (merchant signup/login).
+# Authorized redirect URI: http://localhost:3000/api/auth/google/callback
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+# Optional: override the callback URL (defaults to NEXT_PUBLIC_SITE_URL or localhost).
+GOOGLE_REDIRECT_URI="https://beepanal.store"

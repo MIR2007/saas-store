@@ -7,12 +7,17 @@ import { ArrowUpRight, ShieldCheck, Sparkles } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 import LanguageToggle from "@/components/LanguageToggle";
 import Logo from "@/components/Logo";
+import GoogleButton from "@/components/GoogleButton";
+import GoogleAuthError from "@/components/GoogleAuthError";
 import { inputClass, labelClass } from "@/lib/ui";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
+  const googleHref = `/api/auth/google${
+    next && next !== "/dashboard" ? `?next=${encodeURIComponent(next)}` : ""
+  }`;
   const { t } = useLang();
 
   const [email, setEmail] = useState("");
@@ -68,7 +73,19 @@ function LoginForm() {
             <p className="mt-1 text-sm text-muted">{t.auth.welcome}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+          <div className="mt-6">
+            <GoogleButton href={googleHref} label="الدخول بحساب جوجل" />
+          </div>
+
+          <div className="my-5 flex items-center gap-3 text-[11px] font-bold text-muted">
+            <span className="h-px flex-1 bg-border" />
+            أو
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <GoogleAuthError />
+
+          <form onSubmit={handleSubmit} className="mt-5 space-y-4">
             <div>
               <label className={labelClass}>{t.auth.email}</label>
               <input
