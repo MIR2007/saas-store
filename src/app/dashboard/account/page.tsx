@@ -113,6 +113,11 @@ export default function AccountPage() {
       />
 
       <div className="grid max-w-4xl gap-5 lg:grid-cols-2">
+        {account && !account.phone && (
+          <div className="lg:col-span-2 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm font-semibold text-amber-700 dark:text-amber-300">
+            ضيف رقم موبايلك عشان نقدر نتواصل معاك بخصوص الطلبات والاشتراك. الرقم مطلوب لحسابات التجار.
+          </div>
+        )}
         <section className={`${cardClass} p-6`}>
           <h2 className="flex items-center gap-2 font-extrabold text-foreground">
             <UserRound className="h-4 w-4 text-primary" />
@@ -126,13 +131,19 @@ export default function AccountPage() {
               <input value={name} onChange={(event) => setName(event.target.value)} required className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>رقم الموبايل / واتساب</label>
+              <label className={labelClass}>
+                رقم الموبايل / واتساب
+                {account?.role === "MERCHANT" && <span className="ms-1 text-rose-500">*</span>}
+              </label>
               <input
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
+                required={account?.role === "MERCHANT"}
                 placeholder="01xxxxxxxxx"
                 className={inputClass}
                 dir="ltr"
+                inputMode="tel"
+                autoComplete="tel"
               />
             </div>
             <div>

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import PhoneGate from "@/components/dashboard/PhoneGate";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -30,12 +31,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
     },
   });
 
+  const account = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { phone: true },
+  });
+  const needsPhone = session.role === "MERCHANT" && !account?.phone;
+
   return (
     <DashboardShell
       user={{ name: session.name, email: session.email, role: session.role }}
       stores={stores}
     >
-      {children}
+      {needsPhone ? <PhoneGate name={session.name} /> : children}
     </DashboardShell>
   );
 }

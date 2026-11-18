@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
 import { clientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isValidEgyptMobile, normalizePhone } from "@/lib/phone";
 import { defaultShippingRates } from "@/lib/shipping";
 import { DEFAULT_STORE_COLOR, DEFAULT_STORE_THEME } from "@/lib/themes";
 import { z } from "zod";
@@ -10,6 +11,7 @@ const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
+  phone: z.string().max(30).optional(),
   role: z.enum(["CUSTOMER", "MERCHANT"]).optional(),
 });
 
@@ -46,6 +48,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
     }
     const { name, email, password, role } = parsed.data;
+    const finalRole = role || "CUSTOMER";
+    const phone = normalizePhone(parsed.data.phone);
+
+    if (finalRole === "MERCHANT" && !isValidEgyptMobile(phone)) {
+      return NextResponse.json(
+        { error: "رقم الموبايل مطلوب وصحيح للتجار (مثال: 01012345678)" },
+        { status: 400 }
+      );
+    }
+    if (phone && !isValidEgyptMobile(phone)) {
+      return NextResponse.json({ error: "رقم الموبايل غير صحيح" }, { status: 400 });
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -53,11 +67,10 @@ export async function POST(req: Request) {
     }
 
     const passwordHash = await hashPassword(password);
-    const finalRole = role || "CUSTOMER";
     const storeSlug = finalRole === "MERCHANT" ? await uniqueSlug(name, email) : null;
 
     const user = await prisma.user.create({
-      data: { name, email, passwordHash, role: finalRole },
+      data: { name, email, passwordHash, phone, role: finalRole },
     });
 
     let storeId: string | null = null;

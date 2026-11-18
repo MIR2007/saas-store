@@ -10,8 +10,11 @@ async function isAdmin() {
 
 const schema = z.object({
   storeId: z.string().min(1),
-  action: z.enum(["activate", "stop", "trial"]),
+  action: z.enum(["activate", "stop", "trial", "set-date", "note"]),
   plan: z.enum(["monthly", "yearly"]).optional(),
+  months: z.number().int().min(1).max(24).optional(),
+  renewsAt: z.string().min(1).optional(),
+  note: z.string().max(2000).optional(),
 });
 
 function addMonths(date: Date, months: number) {
@@ -38,13 +41,22 @@ export async function GET() {
       plan: true,
       planStatus: true,
       planRenewsAt: true,
+      subscriptionNote: true,
       createdAt: true,
       user: { select: { name: true, email: true, phone: true } },
       subscriptionRequests: {
-        where: { status: "pending" },
         orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { id: true, plan: true, method: true, reference: true, amount: true, createdAt: true },
+        take: 30,
+        select: {
+          id: true,
+          plan: true,
+          method: true,
+          reference: true,
+          phone: true,
+          amount: true,
+          status: true,
+          createdAt: true,
+        },
       },
       _count: { select: { subscriptionRequests: { where: { status: "pending" } } } },
     },
@@ -65,18 +77,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
     }
 
-    const { storeId, action, plan } = parsed.data;
+    const { storeId, action, plan, months, renewsAt, note } = parsed.data;
     const store = await prisma.store.findUnique({ where: { id: storeId } });
     if (!store) return NextResponse.json({ error: "المتجر غير موجود" }, { status: 404 });
 
     const now = new Date();
     let data: {
       plan?: string;
-      planStatus: string;
-      planRenewsAt: Date | null;
+      planStatus?: string;
+      planRenewsAt?: Date | null;
+      subscriptionNote?: string;
     };
 
-    if (action === "stop") {
+    if (action === "note") {
+      data = { subscriptionNote: (note || "").slice(0, 2000) };
+    } else if (action === "stop") {
       data = { planStatus: "expired", planRenewsAt: now };
     } else if (action === "trial") {
       data = {
@@ -84,16 +99,31 @@ export async function POST(req: Request) {
         planStatus: "active",
         planRenewsAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
       };
+    } else if (action === "set-date") {
+      if (!renewsAt) {
+        return NextResponse.json({ error: "اختار تاريخ التجديد" }, { status: 400 });
+      }
+      const date = renewsAt.includes("T")
+        ? new Date(renewsAt)
+        : new Date(`${renewsAt}T23:59:59`);
+      if (Number.isNaN(date.getTime())) {
+        return NextResponse.json({ error: "تاريخ غير صالح" }, { status: 400 });
+      }
+      data = {
+        planStatus: date.getTime() > now.getTime() ? "active" : "expired",
+        planRenewsAt: date,
+      };
     } else {
       const selected = plan || "monthly";
+      const period = months ?? (selected === "yearly" ? 12 : 1);
       const base =
         store.planRenewsAt && store.planRenewsAt.getTime() > now.getTime()
           ? store.planRenewsAt
           : now;
       data = {
-        plan: selected,
+        plan: period >= 12 ? "yearly" : "monthly",
         planStatus: "active",
-        planRenewsAt: addMonths(base, selected === "yearly" ? 12 : 1),
+        planRenewsAt: addMonths(base, period),
       };
     }
 
@@ -106,10 +136,11 @@ export async function POST(req: Request) {
         plan: true,
         planStatus: true,
         planRenewsAt: true,
+        subscriptionNote: true,
       },
     });
 
-    if (action === "activate") {
+    if (action === "activate" || (action === "set-date" && data.planStatus === "active")) {
       await prisma.$executeRaw`
         UPDATE "SubscriptionRequest"
         SET status = 'approved'

@@ -7,6 +7,7 @@ import { ArrowUpRight, Check, Sparkles } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 import LanguageToggle from "@/components/LanguageToggle";
 import Logo from "@/components/Logo";
+import { isValidEgyptMobile } from "@/lib/phone";
 import { inputClass, labelClass } from "@/lib/ui";
 
 export default function RegisterPage() {
@@ -14,6 +15,7 @@ export default function RegisterPage() {
   const { t } = useLang();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"CUSTOMER" | "MERCHANT">("CUSTOMER");
   const [error, setError] = useState("");
@@ -22,12 +24,20 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (role === "MERCHANT" && !isValidEgyptMobile(phone)) {
+      setError("اكتب رقم موبايل مصري صحيح للتاجر (مثال: 01012345678).");
+      return;
+    }
+    if (phone && !isValidEgyptMobile(phone)) {
+      setError("رقم الموبايل غير صحيح (مثال: 01012345678).");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, email, phone, password, role }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -97,6 +107,28 @@ export default function RegisterPage() {
                 className={inputClass}
                 dir="ltr"
               />
+            </div>
+            <div>
+              <label className={labelClass}>
+                رقم الموبايل / واتساب
+                {role === "MERCHANT" && <span className="ms-1 text-rose-500">*</span>}
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required={role === "MERCHANT"}
+                placeholder="01012345678"
+                className={inputClass}
+                dir="ltr"
+                inputMode="tel"
+                autoComplete="tel"
+              />
+              <p className="mt-1 text-[11px] text-muted">
+                {role === "MERCHANT"
+                  ? "مطلوب للتواصل بخصوص الطلبات والاشتراك."
+                  : "اختياري، بنستخدمه للتواصل لو احتجت."}
+              </p>
             </div>
             <div>
               <label className={labelClass}>{t.auth.password}</label>

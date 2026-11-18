@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { applyOrderStatus, ORDER_STATUS_VALUES } from "@/lib/order-status";
 import { z } from "zod";
 
 const schema = z.object({
-  status: z.enum(["pending", "confirmed", "shipped", "delivered", "cancelled"]),
+  status: z.enum(ORDER_STATUS_VALUES),
 });
 
 async function ownsOrder(storeId: string, orderId: string, userId: string) {
@@ -37,61 +38,13 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeI
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
 
-    const nextStatus = parsed.data.status;
-    if (nextStatus === order.status) {
-      return NextResponse.json({ order });
-    }
-
-    // Conditional update so two concurrent requests can't credit the wallet twice.
-    const changed = await prisma.$executeRaw`
-      UPDATE "Order"
-      SET status = ${nextStatus}
-      WHERE id = ${orderId} AND "storeId" = ${storeId} AND status = ${order.status}
-    `;
-    if (changed === 0) {
-      const current = await prisma.order.findFirst({
-        where: { id: orderId, storeId },
-        include: { items: { include: { product: { select: { images: true } } } } },
-      });
-      return NextResponse.json({ order: current });
-    }
-
-    const shortId = orderId.slice(-8).toUpperCase();
-    const credit = order.status !== "delivered" && nextStatus === "delivered";
-    const debit = order.status === "delivered" && nextStatus !== "delivered";
-
-    if (credit || debit) {
-      const amount = order.total;
-      const delta = credit ? amount : -amount;
-      const type = credit ? "credit" : "debit";
-      const description = credit
-        ? `مبيعات الطلب #${shortId}`
-        : `إلغاء تسليم الطلب #${shortId}`;
-
-      await prisma.$executeRaw`
-        UPDATE "Store"
-        SET "walletBalance" = "walletBalance" + ${delta}
-        WHERE id = ${storeId}
-      `;
-
-      try {
-        await prisma.walletTransaction.create({
-          data: { storeId, orderId, type, amount, description },
-        });
-      } catch (error) {
-        // Put the balance back and restore the previous order status.
-        await prisma.$executeRaw`
-          UPDATE "Store"
-          SET "walletBalance" = "walletBalance" - ${delta}
-          WHERE id = ${storeId}
-        `.catch(() => undefined);
-        await prisma.$executeRaw`
-          UPDATE "Order" SET status = ${order.status}
-          WHERE id = ${orderId} AND "storeId" = ${storeId}
-        `.catch(() => undefined);
-        throw error;
-      }
-    }
+    await applyOrderStatus({
+      storeId,
+      orderId,
+      fromStatus: order.status,
+      toStatus: parsed.data.status,
+      total: order.total,
+    });
 
     const updated = await prisma.order.findFirst({
       where: { id: orderId, storeId },

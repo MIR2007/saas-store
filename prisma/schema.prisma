@@ -45,6 +45,7 @@ model Store {
   plan        String     @default("trial")
   planStatus  String     @default("active")
   planRenewsAt DateTime?
+  subscriptionNote String @default("")
   freeShippingThreshold Float @default(0)
   shippingRates  String     @default("{}")
   themeConfig    String     @default("{}")

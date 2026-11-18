@@ -41,12 +41,16 @@ export async function POST(req: Request) {
 
     let redirect = "/";
     if (user.role === "MERCHANT") {
-      const store = await prisma.store.findFirst({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
-        select: { id: true },
-      });
-      redirect = store ? `/dashboard/stores/${store.id}` : "/dashboard/stores/new";
+      if (!user.phone) {
+        redirect = "/dashboard/account?required=phone";
+      } else {
+        const store = await prisma.store.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "asc" },
+          select: { id: true },
+        });
+        redirect = store ? `/dashboard/stores/${store.id}` : "/dashboard/stores/new";
+      }
     } else if (user.role === "ADMIN") {
       redirect = "/dashboard";
     }

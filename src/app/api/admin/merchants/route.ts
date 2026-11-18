@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isValidEgyptMobile, normalizePhone } from "@/lib/phone";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
@@ -13,7 +14,7 @@ async function isAdmin() {
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  phone: z.string().optional(),
+  phone: z.string().max(30).optional(),
   role: z.enum(["CUSTOMER", "MERCHANT", "ADMIN"]).optional(),
 });
 
@@ -60,9 +61,18 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
   }
 
+  const update = { ...parsed.data };
+  if (update.phone !== undefined) {
+    const phone = normalizePhone(update.phone);
+    if (phone && !isValidEgyptMobile(phone)) {
+      return NextResponse.json({ error: "رقم الموبايل غير صحيح" }, { status: 400 });
+    }
+    update.phone = phone;
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
-    data: parsed.data,
+    data: update,
   });
 
   return NextResponse.json({ user });

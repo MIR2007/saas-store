@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { isValidEgyptMobile, normalizePhone } from "@/lib/phone";
 import { z } from "zod";
 
 const schema = z.object({
@@ -31,9 +32,22 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
     }
 
+    const data: { name?: string; phone?: string } = {};
+    if (parsed.data.name !== undefined) data.name = parsed.data.name;
+    if (parsed.data.phone !== undefined) {
+      const phone = normalizePhone(parsed.data.phone);
+      if (phone && !isValidEgyptMobile(phone)) {
+        return NextResponse.json({ error: "رقم الموبايل غير صحيح" }, { status: 400 });
+      }
+      if (!phone && session.role === "MERCHANT") {
+        return NextResponse.json({ error: "رقم الموبايل مطلوب لحساب التاجر" }, { status: 400 });
+      }
+      data.phone = phone;
+    }
+
     const user = await prisma.user.update({
       where: { id: session.userId },
-      data: parsed.data,
+      data,
       select: { id: true, name: true, email: true, phone: true, role: true },
     });
     return NextResponse.json({ user });
