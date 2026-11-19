@@ -731,9 +731,9 @@ export default function DesignPage() {
       <PageHeader
         backHref={`/dashboard/stores/${storeId}`}
         backLabel={store.name}
-        eyebrow="تصميم المتجر"
+        eyebrow="تصميم المتجر والثيمات"
         title="خصص متجرك بالكامل"
-        subtitle="ألوان، خطوط، شكل الهيدر والهيرو والمنتجات والفوتر — وشوف كل تعديل في المعاينة فورًا."
+        subtitle="اختار ثيم جاهز أو خصص كل تفصيلة: ألوان، خطوط، شكل الهيدر والهيرو والمنتجات والفوتر — وشوف كل تعديل في المعاينة فورًا."
         icon={<Palette className="h-6 w-6" />}
         action={
           <a
