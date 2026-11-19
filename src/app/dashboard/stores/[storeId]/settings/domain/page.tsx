@@ -6,6 +6,8 @@ import Link from "next/link";
 import {
   AlertCircle,
   Check,
+  CheckCircle2,
+  Clock,
   Copy,
   ExternalLink,
   Globe2,
@@ -20,10 +22,45 @@ import { cardClass, dangerBtn, inputClass, labelClass, primaryBtn, secondaryBtn 
 
 type VerificationRecord = { type?: string; domain?: string; value?: string; reason?: string };
 type DnsInfo = { a: string[]; cname: string };
+type DnsRecord = { type: string; name: string; value: string };
+type DomainRecords = { apex: boolean; txt: DnsRecord; cname: DnsRecord; www: DnsRecord };
+type Checks = {
+  ownership?: boolean;
+  routing?: boolean;
+  checkedAt?: string;
+  txtName?: string;
+  cnameTarget?: string;
+  cnameFound?: string | null;
+  aRecords?: string[];
+  error?: string;
+};
 
 const DEFAULT_DNS: DnsInfo = {
   a: [],
   cname: "customers.beepanal.store",
+};
+
+const STATUS_META: Record<string, { label: string; tone: string; icon: typeof Check }> = {
+  active: {
+    label: "متصل وشغال",
+    tone: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+    icon: CheckCircle2,
+  },
+  verified: {
+    label: "تم التحقق — بانتظار التفعيل",
+    tone: "bg-sky-500/10 text-sky-700 ring-sky-500/20 dark:text-sky-300",
+    icon: ShieldCheck,
+  },
+  pending: {
+    label: "بانتظار إعدادات DNS",
+    tone: "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-300",
+    icon: Clock,
+  },
+  none: {
+    label: "غير مربوط",
+    tone: "bg-surface text-muted ring-border",
+    icon: Globe2,
+  },
 };
 
 export default function StoreDomainPage() {
@@ -38,40 +75,86 @@ export default function StoreDomainPage() {
   const [subdomainUrl, setSubdomainUrl] = useState("");
   const [verification, setVerification] = useState<VerificationRecord[]>([]);
   const [dns, setDns] = useState<DnsInfo>(DEFAULT_DNS);
+  const [records, setRecords] = useState<DomainRecords | null>(null);
+  const [checks, setChecks] = useState<Checks | null>(null);
   const [automated, setAutomated] = useState(true);
+  const [warning, setWarning] = useState("");
   const [busy, setBusy] = useState<"save" | "verify" | "remove" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<"success" | "info">("info");
   const [copied, setCopied] = useState("");
 
-  async function load() {
-    const res = await fetch(`/api/stores/${storeId}/domain`);
-    const data = await res.json();
-    if (res.ok) {
-      setSavedDomain(data.customDomain || null);
-      setDomain(data.customDomain || "");
-      setStatus(data.status || "none");
-      setSubdomain(data.subdomain || "");
-      setSubdomainUrl(data.subdomainUrl || "");
-      setVerification(Array.isArray(data.verification) ? data.verification : []);
-      if (data.dns) setDns({ a: data.dns.a || DEFAULT_DNS.a, cname: data.dns.cname || DEFAULT_DNS.cname });
-      setAutomated(Boolean(data.automated));
+  function apply(data: {
+    customDomain?: string | null;
+    status?: string;
+    subdomain?: string;
+    subdomainUrl?: string;
+    verification?: VerificationRecord[];
+    dns?: DnsInfo;
+    records?: DomainRecords | null;
+    checks?: Checks | null;
+    automated?: boolean;
+    warning?: string;
+  }) {
+    setSavedDomain(data.customDomain || null);
+    setDomain(data.customDomain || "");
+    setStatus(data.status || "none");
+    if (data.subdomain) setSubdomain(data.subdomain);
+    if (data.subdomainUrl) setSubdomainUrl(data.subdomainUrl);
+    setVerification(Array.isArray(data.verification) ? data.verification : []);
+    if (data.dns) {
+      setDns({ a: data.dns.a || DEFAULT_DNS.a, cname: data.dns.cname || DEFAULT_DNS.cname });
     }
-    setLoading(false);
+    setRecords(data.records || null);
+    setChecks(data.checks || null);
+    setAutomated(Boolean(data.automated));
+    setWarning(data.warning || "");
   }
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let active = true;
+    fetch(`/api/stores/${storeId}/domain`)
+      .then(async (res) => ({ ok: res.ok, data: await res.json() }))
+      .then(({ ok, data }) => {
+        if (active && ok) apply(data);
+      })
+      .catch(() => {
+        if (active) setError("مش قادرين نحمّل بيانات الدومين. جرّب تحديث الصفحة.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [storeId]);
 
   async function copy(value: string, key: string) {
+    let copiedOk = false;
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(key);
-      setTimeout(() => setCopied(""), 1600);
+      copiedOk = true;
     } catch {
-      setCopied("");
+      copiedOk = false;
+    }
+    if (!copiedOk) {
+      try {
+        const input = document.createElement("textarea");
+        input.value = value;
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        copiedOk = document.execCommand("copy");
+        input.remove();
+      } catch {
+        copiedOk = false;
+      }
+    }
+    if (copiedOk) {
+      setCopied(key);
+      setTimeout(() => setCopied(""), 1800);
     }
   }
 
@@ -91,16 +174,12 @@ export default function StoreDomainPage() {
         setError(data.error || "مش قادرين نضيف الدومين.");
         return;
       }
-      setSavedDomain(data.customDomain);
-      setStatus(data.status);
-      setVerification(Array.isArray(data.verification) ? data.verification : []);
-      if (typeof data.automated === "boolean") setAutomated(data.automated);
-      if (data.dns) setDns({ a: data.dns.a || DEFAULT_DNS.a, cname: data.dns.cname || DEFAULT_DNS.cname });
+      apply(data);
+      setNoticeTone(data.status === "active" ? "success" : "info");
       setNotice(
-        data.warning ||
-          (data.status === "active"
-            ? "الدومين متفعّل وجاهز ✅"
-            : "الدومين اتضاف. كمّل إعدادات DNS عند مزوّد الدومين وبعدها اضغط «تحقق الآن».")
+        data.status === "active"
+          ? "الدومين متفعّل وجاهز ✅"
+          : "الدومين اتحفظ. ضيف سجلات DNS اللي تحت، وبعدها اضغط «تحقق الآن»."
       );
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");
@@ -117,18 +196,20 @@ export default function StoreDomainPage() {
       const res = await fetch(`/api/stores/${storeId}/domain`, { method: "PATCH" });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "لسه الدومين مش متأكد.");
+        setError(data.error || "مش قادرين نتحقق من الدومين دلوقتي.");
         return;
       }
-      setStatus(data.status);
-      setVerification(Array.isArray(data.verification) ? data.verification : []);
-      if (data.dns) setDns({ a: data.dns.a || DEFAULT_DNS.a, cname: data.dns.cname || DEFAULT_DNS.cname });
-      setNotice(
-        data.warning ||
-          (data.status === "active"
-            ? "تمام! الدومين متفعّل وجاهز ✅"
-            : "الدومين لسه محتاج وقت لنشر DNS. جرّب تاني بعد شوية.")
-      );
+      apply(data);
+      if (data.status === "active") {
+        setNoticeTone("success");
+        setNotice("تمام! الدومين متفعّل وجاهز ✅");
+      } else if (data.verified) {
+        setNoticeTone("success");
+        setNotice("تم التحقق من الدومين ✅ فريق Bee Panal هيكمّل التفعيل النهائي.");
+      } else if (data.message) {
+        setNoticeTone("info");
+        setNotice(data.message);
+      }
     } catch {
       setError("مشكلة في الاتصال، جرّب تاني.");
     } finally {
@@ -152,6 +233,10 @@ export default function StoreDomainPage() {
       setDomain("");
       setStatus("none");
       setVerification([]);
+      setRecords(null);
+      setChecks(null);
+      setWarning("");
+      setNoticeTone("success");
       setNotice("تم فصل الدومين. متجرك شغال على السب دومين.");
     } finally {
       setBusy(null);
@@ -167,8 +252,13 @@ export default function StoreDomainPage() {
     );
   }
 
+  const meta = STATUS_META[status] || STATUS_META.pending;
+  const StatusIcon = meta.icon;
   const active = status === "active";
-  const pending = status === "pending";
+  const verified = status === "verified" || active;
+  const ownershipDone = Boolean(checks?.ownership);
+  const routingDone = Boolean(checks?.routing);
+  const checked = Boolean(checks?.checkedAt);
 
   return (
     <div className="p-5 sm:p-6 lg:p-8">
@@ -177,7 +267,7 @@ export default function StoreDomainPage() {
         backLabel="إعدادات المتجر"
         eyebrow="رابط المتجر والدومين"
         title="خلي متجرك باسمك"
-        subtitle="كل متجر له سب دومين مجاني على beepanal.store، وتقدر تربط دومينك الخاص."
+        subtitle="كل متجر له سب دومين مجاني على beepanal.store، وتقدر تربط دومينك الخاص كمان."
         icon={<Globe2 className="h-6 w-6" />}
       />
 
@@ -222,7 +312,7 @@ export default function StoreDomainPage() {
 
         {/* Custom domain */}
         <section className={`${cardClass} p-6`}>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
                 <Server className="h-6 w-6" />
@@ -236,56 +326,229 @@ export default function StoreDomainPage() {
               </div>
             </div>
             {savedDomain && (
-              <span
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ring-1 ${
-                  active
-                    ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300"
-                    : "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-300"
-                }`}
-              >
-                {active ? <Check className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
-                {active ? "متصل" : "بانتظار DNS"}
+              <span className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ring-1 ${meta.tone}`}>
+                <StatusIcon className="h-3.5 w-3.5" />
+                {meta.label}
               </span>
             )}
           </div>
 
-          <form onSubmit={connect} className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label className={labelClass}>الدومين</label>
-              <input
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                placeholder="mystore.com"
-                className={inputClass}
-                dir="ltr"
-                disabled={Boolean(savedDomain)}
-              />
+          {savedDomain ? (
+            <div className="mt-6 space-y-5">
+              <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-muted">الدومين المربوط</div>
+                  <div className="mt-1 truncate font-mono text-sm font-extrabold text-foreground" dir="ltr">
+                    {savedDomain}
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  {!active && (
+                    <button type="button" onClick={verify} disabled={busy === "verify"} className={primaryBtn}>
+                      {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      تحقق الآن
+                    </button>
+                  )}
+                  <button type="button" onClick={remove} disabled={busy === "remove"} className={dangerBtn}>
+                    {busy === "remove" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    فصل
+                  </button>
+                </div>
+              </div>
+
+              {active && (
+                <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <div className="text-sm font-extrabold text-foreground">دومينك شغال على Bee Panal</div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                        العملاء يقدروا يفتحوا متجرك من الدومين ده مباشرة، وشهادة الأمان مفعّلة.
+                      </p>
+                    </div>
+                  </div>
+                  <a href={`https://${savedDomain}`} target="_blank" rel="noreferrer" className={primaryBtn}>
+                    افتح الدومين
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              )}
+
+              {!active && (
+                <>
+                  {warning && (
+                    <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      {warning}
+                    </div>
+                  )}
+
+                  {/* Step 1 */}
+                  <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-extrabold text-white">1</span>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-foreground">ضيف سجلات DNS عند مزوّد الدومين</h3>
+                          <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                            افتح لوحة إدارة الدومين (GoDaddy / Namecheap / Cloudflare…) وأضف السجلين دول.
+                            النشر بياخد من دقايق لساعات حسب المزوّد.
+                          </p>
+                        </div>
+                      </div>
+                      {checked && ownershipDone && routingDone && (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                          <Check className="h-3 w-3" />
+                          تمام
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-4 space-y-2.5">
+                      <DnsRow
+                        type="TXT"
+                        name={records?.txt.name || `_beepanal-verify.${savedDomain}`}
+                        value={records?.txt.value || ""}
+                        hint="لإثبات إنك مالك الدومين"
+                        state={checked ? (ownershipDone ? "done" : "missing") : "idle"}
+                        onCopy={() => copy(records?.txt.value || "", "txt")}
+                        copied={copied === "txt"}
+                      />
+                      <DnsRow
+                        type="CNAME"
+                        name={records?.cname.name || savedDomain}
+                        value={records?.cname.value || dns.cname}
+                        hint="لتوجيه الدومين لمتجرك على Bee Panal"
+                        state={checked ? (routingDone ? "done" : "missing") : "idle"}
+                        onCopy={() => copy(records?.cname.value || dns.cname, "cname")}
+                        copied={copied === "cname"}
+                      />
+                      {records?.apex && (
+                        <DnsRow
+                          type="CNAME"
+                          name={records?.www.name || `www.${savedDomain}`}
+                          value={records?.www.value || dns.cname}
+                          hint="اختياري — لنسخة www من الدومين"
+                          state="idle"
+                          onCopy={() => copy(records?.www.value || dns.cname, "www")}
+                          copied={copied === "www"}
+                        />
+                      )}
+                    </div>
+
+                    {records?.apex && (
+                      <div className="mt-4 flex items-start gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-[11px] leading-relaxed text-muted">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span>
+                          لأن ده الدومين الأساسي، بعض المزوّدين مش بيسمحوا بـ CNAME عليه. استخدم
+                          <b> ALIAS / ANAME / CNAME Flattening</b> لو متاح، أو اربط سب دومين زي
+                          <span className="font-mono"> shop.{savedDomain}</span>.
+                          لو دومينك على Cloudflare خلي السجل <b>Proxied</b>.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-start gap-3">
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-extrabold ${verified ? "bg-emerald-500 text-white" : "bg-primary text-white"}`}>
+                        {verified ? <Check className="h-4 w-4" /> : "2"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-extrabold text-foreground">اتحقق من الدومين</h3>
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                          بعد ما تضيف السجلات، اضغط «تحقق الآن». بنتأكد من ملكية الدومين ومن إنه موجه
+                          لـ Bee Panal.
+                        </p>
+                        {checked && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <CheckChip label="ملكية الدومين (TXT)" ok={ownershipDone} />
+                            <CheckChip label="توجيه الدومين (CNAME)" ok={routingDone} />
+                          </div>
+                        )}
+                        {!active && (
+                          <button type="button" onClick={verify} disabled={busy === "verify"} className={`${secondaryBtn} mt-3`}>
+                            {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                            تحقق الآن
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-start gap-3">
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-extrabold ${verified ? "bg-emerald-500 text-white" : "bg-surface text-muted"}`}>
+                        {verified ? <Check className="h-4 w-4" /> : "3"}
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-extrabold text-foreground">التفعيل النهائي وشهادة الأمان</h3>
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                          {verified
+                            ? "الدومين اتأكد ✅ فريق Bee Panal هيكمّل تفعيل شهادة SSL وتشغيل الدومين. هتلاقي الحالة هنا اتغيرت لـ «متصل» أول ما يخلص."
+                            : "بعد التحقق من السجلات، فريق Bee Panal بيكمّل شهادة الأمان (SSL) وتشغيل الدومين على المتجر."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {verification.length > 0 && !active && (
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <h3 className="text-sm font-extrabold text-foreground">سجلات تحقق إضافية من Cloudflare</h3>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                    لو ظهرت لك السجلات دي في لوحة Cloudflare، ضيفها زي ما هي.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {verification.map((record, index) => (
+                      <DnsRow
+                        key={index}
+                        type={record.type || "TXT"}
+                        name={record.domain || "_cf-custom-hostname"}
+                        value={record.value || ""}
+                        state="idle"
+                        onCopy={() => copy(record.value || "", `v-${index}`)}
+                        copied={copied === `v-${index}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!automated && !warning && (
+                <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  الربط التلقائي عبر Cloudflare مش مفعّل على السيرفر حاليًا. الدومين هيتحفظ ويتحقق منه،
+                  وفريق Bee Panal هيكمّل التفعيل يدويًا.
+                </div>
+              )}
             </div>
-            {savedDomain ? (
-              <div className="flex gap-2">
-                <button type="button" onClick={verify} disabled={busy === "verify"} className={secondaryBtn}>
-                  {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  تحقق الآن
-                </button>
-                <button type="button" onClick={remove} disabled={busy === "remove"} className={dangerBtn}>
-                  {busy === "remove" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  فصل
+          ) : (
+            <form onSubmit={connect} className="mt-6">
+              <label className={labelClass}>الدومين</label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  placeholder="mystore.com"
+                  className={`${inputClass} flex-1`}
+                  dir="ltr"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button type="submit" disabled={busy === "save" || !domain.trim()} className={primaryBtn}>
+                  {busy === "save" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />}
+                  ربط الدومين
                 </button>
               </div>
-            ) : (
-              <button type="submit" disabled={busy === "save" || !domain.trim()} className={primaryBtn}>
-                {busy === "save" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />}
-                ربط الدومين
-              </button>
-            )}
-          </form>
-
-          {!automated && (
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              الربط التلقائي عبر Cloudflare مش مفعّل على السيرفر حاليًا. الدومين هيتحفظ، وفريق Bee Panal هيكمّل
-              التفعيل يدويًا.
-            </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                اكتب الدومين من غير <span className="font-mono">https://</span> ومن غير <span className="font-mono">www</span>.
+                مثال: <span className="font-mono">mystore.com</span> أو <span className="font-mono">shop.mystore.com</span>.
+              </p>
+            </form>
           )}
 
           {error && (
@@ -295,77 +558,26 @@ export default function StoreDomainPage() {
             </div>
           )}
           {notice && (
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-              <Check className="mt-0.5 h-4 w-4 shrink-0" />
-              {notice}
-            </div>
-          )}
-
-          {savedDomain && pending && (
-            <div className="mt-6 rounded-2xl border border-border bg-surface/60 p-5">
-              <h3 className="text-sm font-extrabold text-foreground">خطوات ربط DNS عند مزوّد الدومين</h3>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                افتح لوحة إدارة الدومين (GoDaddy / Namecheap / Cloudflare…) وأضف السجلات دي. النشر بياخد من
-                دقايق لساعات حسب المزوّد.
-              </p>
-
-              <div className="mt-4 space-y-2.5">
-                {dns.a.map((value, index) => (
-                  <DnsRow
-                    key={`a-${index}`}
-                    type="A"
-                    name="@"
-                    value={value}
-                    onCopy={() => copy(value, `a-${index}`)}
-                    copied={copied === `a-${index}`}
-                  />
-                ))}
-                <DnsRow
-                  type="CNAME"
-                  name="@"
-                  value={dns.cname}
-                  onCopy={() => copy(dns.cname, "cname-root")}
-                  copied={copied === "cname-root"}
-                />
-                <DnsRow
-                  type="CNAME"
-                  name="www"
-                  value={dns.cname}
-                  onCopy={() => copy(dns.cname, "cname")}
-                  copied={copied === "cname"}
-                />
-              </div>
-
-              {verification.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-xs font-extrabold text-foreground">سجلات التحقق المطلوبة من Cloudflare</h4>
-                  <div className="mt-2 space-y-2">
-                    {verification.map((record, index) => (
-                      <DnsRow
-                        key={index}
-                        type={record.type || "TXT"}
-                        name={record.domain || "_cf-custom-hostname"}
-                        value={record.value || ""}
-                        onCopy={() => copy(record.value || "", `v-${index}`)}
-                        copied={copied === `v-${index}`}
-                      />
-                    ))}
-                  </div>
-                </div>
+            <div
+              className={`mt-4 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm font-semibold ${
+                noticeTone === "success"
+                  ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                  : "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+              }`}
+            >
+              {noticeTone === "success" ? (
+                <Check className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               )}
-
-              <div className="mt-4 flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-[11px] leading-relaxed text-muted">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                لو دومينك على Cloudflare: خلي سجل الـ CNAME <b>Proxied</b> (السحابة البرتقالية)، وفعّل
-                CNAME Flattening لو بتربط الدومين الأساسي. عند مزوّدين تانيين استخدم ALIAS/ANAME للدومين الأساسي.
-              </div>
+              {notice}
             </div>
           )}
         </section>
 
         <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-5 py-4 text-[11px] leading-relaxed text-muted">
           <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-          بنتحقق من ملكية الدومين عند مزوّد DNS قبل تفعيله — محدش هيقدر يربط دومين مش بتاعه.
+          بنتحقق من ملكية الدومين بسجل TXT قبل تفعيله — محدش هيقدر يربط دومين مش بتاعه.
         </div>
 
         <Link href={`/dashboard/stores/${storeId}/settings`} className="inline-flex text-xs font-bold text-primary hover:underline">
@@ -376,30 +588,66 @@ export default function StoreDomainPage() {
   );
 }
 
+function CheckChip({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+        ok
+          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+      }`}
+    >
+      {ok ? <Check className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+      {label}
+    </span>
+  );
+}
+
 function DnsRow({
   type,
   name,
   value,
+  hint,
+  state,
   onCopy,
   copied,
 }: {
   type: string;
   name: string;
   value: string;
+  hint?: string;
+  state: "idle" | "done" | "missing";
   onCopy: () => void;
   copied: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center" dir="ltr">
-      <span className="w-16 shrink-0 rounded-md bg-primary/10 px-2 py-0.5 text-center font-mono text-[10px] font-extrabold text-primary">
-        {type}
-      </span>
-      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted">{name}</span>
-      <span className="min-w-0 flex-[2] truncate font-mono text-[11px] font-bold text-foreground">{value}</span>
-      <button type="button" onClick={onCopy} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-primary">
-        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-        {copied ? "اتنسخ" : "نسخ"}
-      </button>
+    <div className="rounded-xl border border-border bg-card px-4 py-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center" dir="ltr">
+        <span className="w-16 shrink-0 rounded-md bg-primary/10 px-2 py-0.5 text-center font-mono text-[10px] font-extrabold text-primary">
+          {type}
+        </span>
+        <span className="min-w-0 flex-1 break-all font-mono text-[11px] text-muted">{name}</span>
+        <span className="min-w-0 flex-[2] break-all font-mono text-[11px] font-bold text-foreground">{value}</span>
+        <button type="button" onClick={onCopy} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-primary">
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? "اتنسخ" : "نسخ"}
+        </button>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        {hint && <span className="text-[10px] text-muted">{hint}</span>}
+        {state === "done" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-300">
+            <Check className="h-2.5 w-2.5" />
+            موجود
+          </span>
+        )}
+        {state === "missing" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold text-amber-700 dark:text-amber-300">
+            <Clock className="h-2.5 w-2.5" />
+            لسه مش ظاهر
+          </span>
+        )}
+      </div>
     </div>
   );
 }

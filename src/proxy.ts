@@ -22,7 +22,8 @@ async function slugForCustomDomain(host: string) {
   try {
     // Always resolve through the platform hostname. Fetching the custom host
     // itself would re-enter this middleware and recurse.
-    const url = new URL("/api/public/resolve-domain", PLATFORM_URL);
+    const base = process.env.NEXT_PUBLIC_SITE_URL || PLATFORM_URL;
+    const url = new URL("/api/public/resolve-domain", base);
     url.searchParams.set("host", host);
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
@@ -64,8 +65,11 @@ export async function proxy(request: NextRequest) {
   if (!platform) {
     const slug = await slugForCustomDomain(host);
     if (slug) return rewriteToStore(request, slug);
-    // Unknown host: let the platform 404 naturally.
-    return NextResponse.next();
+    // Unknown host must not fall through to the platform homepage.
+    return new NextResponse("هذا الدومين غير مربوط بأي متجر على Bee Panal.", {
+      status: 404,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
   }
 
   // ---- Platform authentication

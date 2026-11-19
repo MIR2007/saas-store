@@ -2,8 +2,19 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { cleanDomainInput, isValidDomain, subdomainFor, PLATFORM_DOMAIN } from "@/lib/domains";
 import {
+  cleanDomainInput,
+  domainVerificationHost,
+  isApexDomain,
+  isValidDomain,
+  parseDomainState,
+  serializeDomainState,
+  subdomainFor,
+  PLATFORM_DOMAIN,
+  type DomainState,
+} from "@/lib/domains";
+import {
+  CUSTOM_DOMAIN_CNAME,
   addCustomHostname,
   cloudflareDomainError,
   cloudflareDomainsConfigured,
@@ -15,39 +26,106 @@ import {
   saasAvailable,
   verificationRecords,
 } from "@/lib/cloudflare-domains";
+import {
+  DOMAIN_QUOTA_WARNING,
+  DOMAIN_TOKEN_WARNING,
+  domainStatusMessage,
+  refreshDomainConnection,
+} from "@/lib/domain-service";
 import { z } from "zod";
 
 const schema = z.object({ domain: z.string().min(3) });
+
+const QUOTA_WARNING = DOMAIN_QUOTA_WARNING;
+const TOKEN_WARNING = DOMAIN_TOKEN_WARNING;
+
+type StoreDomainRecord = {
+  id: string;
+  slug: string;
+  customDomain: string | null;
+  customDomainStatus: string;
+  domainToken: string;
+  domainVerification: string;
+};
 
 async function ownsStore(storeId: string, userId: string) {
   return prisma.store.findFirst({ where: { id: storeId, userId } });
 }
 
-function parseVerification(raw: string) {
-  try {
-    const value = JSON.parse(raw || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
+function makeToken() {
+  return `beepanal-verify=${randomBytes(16).toString("hex")}`;
+}
+
+function recordsFor(domain: string, token: string) {
+  return {
+    apex: isApexDomain(domain),
+    txt: {
+      type: "TXT",
+      name: domainVerificationHost(domain),
+      value: token,
+    },
+    cname: {
+      type: "CNAME",
+      name: domain,
+      value: CUSTOM_DOMAIN_CNAME,
+    },
+    www: {
+      type: "CNAME",
+      name: `www.${domain}`,
+      value: CUSTOM_DOMAIN_CNAME,
+    },
+  };
+}
+
+function payload(
+  store: StoreDomainRecord,
+  state: DomainState,
+  extras: { automated: boolean; warning?: string }
+) {
+  const token = store.domainToken || "";
+  return {
+    subdomain: subdomainFor(store.slug),
+    subdomainUrl: `https://${subdomainFor(store.slug)}`,
+    customDomain: store.customDomain,
+    status: store.customDomainStatus,
+    verification: state.cloudflare || [],
+    checks: state.dns || null,
+    verifiedAt: state.verifiedAt || null,
+    automated: extras.automated,
+    warning: extras.warning || "",
+    platformDomain: PLATFORM_DOMAIN,
+    dns: recommendedDns(),
+    token,
+    records: store.customDomain && token ? recordsFor(store.customDomain, token) : null,
+  };
 }
 
 export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId]/domain">) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   const { storeId } = await ctx.params;
-  const store = await ownsStore(storeId, session.userId);
+  let store = await ownsStore(storeId, session.userId);
   if (!store) return NextResponse.json({ error: "غير موجود" }, { status: 404 });
 
-  let verification = parseVerification(store.domainVerification);
-  let status = store.customDomainStatus;
+  // Legacy rows can have a domain without a verification token.
+  if (store.customDomain && !store.domainToken) {
+    store = await prisma.store.update({
+      where: { id: storeId },
+      data: { domainToken: makeToken() },
+    });
+  }
+
+  const state = parseDomainState(store.domainVerification);
+  let status = store.customDomainStatus || (store.customDomain ? "pending" : "none");
+  if (store.customDomain && status === "none") status = "pending";
   let automated = cloudflareDomainsConfigured();
+  const warning = "";
 
   if (store.customDomain && automated) {
     const hostname = await getCustomHostname(store.customDomain);
     if (hostname.ok && hostname.data) {
-      verification = verificationRecords(hostname.data);
-      status = isCustomHostnameActive(hostname.data) ? "active" : "pending";
+      state.cloudflare = verificationRecords(hostname.data);
+      if (isCustomHostnameActive(hostname.data)) status = "active";
     } else if (isSaasQuotaError(hostname.errors)) {
       automated = false;
     }
@@ -55,16 +133,19 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId
     automated = await saasAvailable();
   }
 
-  return NextResponse.json({
-    subdomain: subdomainFor(store.slug),
-    subdomainUrl: `https://${subdomainFor(store.slug)}`,
-    customDomain: store.customDomain,
-    status,
-    verification,
-    automated,
-    platformDomain: PLATFORM_DOMAIN,
-    dns: recommendedDns(),
-  });
+  if (status !== store.customDomainStatus) {
+    await prisma.store.update({
+      where: { id: storeId },
+      data: {
+        customDomainStatus: status,
+        domainVerification: serializeDomainState(state),
+      },
+    });
+  }
+
+  return NextResponse.json(
+    payload({ ...store, customDomainStatus: status }, state, { automated, warning })
+  );
 }
 
 export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId]/domain">) {
@@ -99,8 +180,17 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
     return NextResponse.json({ error: "الدومين ده مربوط بمتجر تاني على Bee Panal." }, { status: 409 });
   }
 
-  const token = `beepanal-verify=${randomBytes(16).toString("hex")}`;
-  let verification: any[] = [];
+  // Replacing a domain: detach the previous Cloudflare hostname first.
+  if (store.customDomain && store.customDomain !== domain) {
+    try {
+      await removeCustomHostname(store.customDomain);
+    } catch {
+      // The new domain is still saved even if cleanup fails.
+    }
+  }
+
+  const token = makeToken();
+  let cloudflareRecords: DomainState["cloudflare"] = [];
   let status = "pending";
   let automated = false;
   let warning = "";
@@ -108,20 +198,25 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
   const added = await addCustomHostname(domain);
   if (added.ok && added.data) {
     automated = true;
-    verification = verificationRecords(added.data);
+    cloudflareRecords = verificationRecords(added.data);
     if (isCustomHostnameActive(added.data)) status = "active";
   } else if (isSaasQuotaError(added.errors)) {
-    warning = "ربط الدومينات المخصصة هيتفعّل قريبًا. الدومين اتحفظ، وفريق Bee Panal هيكمّل التفعيل.";
+    warning = QUOTA_WARNING;
   } else if (added.status === 503) {
     warning = "الإضافة التلقائية غير مفعّلة حاليًا. الدومين اتحفظ، وفريق Bee Panal هيفعّله لك.";
   } else if (added.status === 401 || added.status === 403) {
     // The stored Cloudflare token is missing/expired. Save the domain anyway so
     // the merchant sees the DNS instructions and support can attach it manually.
-    automated = false;
-    warning = "الربط التلقائي عبر Cloudflare مش متاح حاليًا. الدومين اتحفظ، وفريق Bee Panal هيكمّل التفعيل.";
+    warning = TOKEN_WARNING;
   } else {
     return NextResponse.json({ error: cloudflareDomainError(added) }, { status: 400 });
   }
+
+  const state: DomainState = {
+    cloudflare: cloudflareRecords,
+    dns: undefined,
+    verifiedAt: status === "active" ? new Date().toISOString() : null,
+  };
 
   const updated = await prisma.store.update({
     where: { id: storeId },
@@ -129,68 +224,47 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
       customDomain: domain,
       customDomainStatus: status,
       domainToken: token,
-      domainVerification: JSON.stringify(verification),
+      domainVerification: serializeDomainState(state),
     },
-    select: { customDomain: true, customDomainStatus: true },
   });
 
-  return NextResponse.json({
-    ok: true,
-    customDomain: updated.customDomain,
-    status: updated.customDomainStatus,
-    verification,
-    automated,
-    warning,
-    token,
-    dns: recommendedDns(),
-  });
+  return NextResponse.json(
+    payload(updated, state, { automated, warning })
+  );
 }
 
 export async function PATCH(_req: Request, ctx: RouteContext<"/api/stores/[storeId]/domain">) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   const { storeId } = await ctx.params;
-  const store = await ownsStore(storeId, session.userId);
+  let store = await ownsStore(storeId, session.userId);
   if (!store) return NextResponse.json({ error: "غير موجود" }, { status: 404 });
   if (!store.customDomain) {
     return NextResponse.json({ error: "مفيش دومين مخصص محفوظ" }, { status: 400 });
   }
 
-  const existing = await getCustomHostname(store.customDomain);
-  if (!existing.ok || !existing.data) {
-    if (isSaasQuotaError(existing.errors)) {
-      return NextResponse.json({
-        status: store.customDomainStatus || "pending",
-        verified: false,
-        verification: parseVerification(store.domainVerification),
-        pending: true,
-        warning: "ربط الدومينات المخصصة هيتفعّل قريبًا. الدومين محفوظ، وفريق Bee Panal هيكمّل التفعيل.",
-        dns: recommendedDns(),
-      });
-    }
-    return NextResponse.json(
-      { error: cloudflareDomainError(existing), status: store.customDomainStatus },
-      { status: 400 }
-    );
+  if (!store.domainToken) {
+    store = await prisma.store.update({
+      where: { id: storeId },
+      data: { domainToken: makeToken() },
+    });
   }
 
-  const verification = verificationRecords(existing.data);
-  const status = isCustomHostnameActive(existing.data) ? "active" : "pending";
+  const refreshed = await refreshDomainConnection(store);
+  if (!refreshed) {
+    return NextResponse.json({ error: "مفيش دومين مخصص محفوظ" }, { status: 400 });
+  }
 
-  await prisma.store.update({
-    where: { id: storeId },
-    data: {
-      customDomainStatus: status,
-      domainVerification: JSON.stringify(verification),
-    },
-  });
+  const updated = { ...store, customDomainStatus: refreshed.status };
 
   return NextResponse.json({
-    status,
-    verified: status === "active",
-    verification,
-    sslStatus: existing.data.ssl?.status || null,
-    dns: recommendedDns(),
+    ...payload(updated, refreshed.state, {
+      automated: refreshed.automated,
+      warning: refreshed.warning,
+    }),
+    verified: refreshed.status !== "pending",
+    active: refreshed.status === "active",
+    message: domainStatusMessage(refreshed.status, refreshed.checks),
   });
 }
 

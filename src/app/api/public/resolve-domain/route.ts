@@ -17,13 +17,18 @@ export async function GET(req: Request) {
   }
 
   try {
+    // `www.example.com` works when `example.com` is connected, and vice versa.
+    const candidates = host.startsWith("www.") ? [host, host.slice(4)] : [host];
+
+    // Only fully activated domains may serve a storefront. A saved-but-pending
+    // domain must never hijack traffic before ownership and SSL are ready.
     const store = await prisma.store.findFirst({
-      where: { customDomain: host },
+      where: { customDomain: { in: candidates }, customDomainStatus: "active" },
       select: { slug: true },
     });
     return NextResponse.json(
       { slug: store?.slug || null },
-      { headers: { "cache-control": "public, max-age=60, s-maxage=60" } }
+      { headers: { "cache-control": "public, max-age=30, s-maxage=30" } }
     );
   } catch (error) {
     console.error("domain lookup failed", error);

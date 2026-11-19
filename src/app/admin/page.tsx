@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, CreditCard, LogOut, Package, ShieldCheck, ShoppingBag, Store, Users, Wallet } from "lucide-react";
+import { ArrowUpRight, CreditCard, Globe2, LogOut, Package, ShieldCheck, ShoppingBag, Store, Users, Wallet } from "lucide-react";
 import { VERSION } from "@/lib/version";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { cardClass } from "@/lib/ui";
@@ -91,6 +91,13 @@ export default function AdminDashboard() {
               الاشتراكات
             </Link>
             <Link
+              href="/admin/domains"
+              className="hidden items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:text-foreground sm:inline-flex"
+            >
+              <Globe2 className="h-3.5 w-3.5" />
+              الدومينات
+            </Link>
+            <Link
               href="/admin/merchants"
               className="hidden items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:text-foreground sm:inline-flex"
             >
@@ -133,7 +140,7 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             href="/admin/subscriptions"
             className={`${cardClass} group flex items-center justify-between gap-4 p-5 transition-colors hover:border-primary/40`}
@@ -164,6 +171,24 @@ export default function AdminDashboard() {
                 <div className="font-extrabold text-foreground">إدارة التجار</div>
                 <div className="mt-0.5 text-xs text-muted">
                   بيانات التجار، أرقام الموبايل، وصلاحيات الحسابات
+                </div>
+              </div>
+            </div>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted transition-colors group-hover:text-primary" />
+          </Link>
+
+          <Link
+            href="/admin/domains"
+            className={`${cardClass} group flex items-center justify-between gap-4 p-5 transition-colors hover:border-primary/40`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <Globe2 className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="font-extrabold text-foreground">الدومينات المخصصة</div>
+                <div className="mt-0.5 text-xs text-muted">
+                  تحقق من DNS وفعّل دومينات التجار
                 </div>
               </div>
             </div>
