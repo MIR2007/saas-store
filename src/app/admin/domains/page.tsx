@@ -397,15 +397,17 @@ export default function AdminDomainsPage() {
                         {busy === `${store.id}:remove` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         فصل
                       </button>
-                      <a
-                        href={`https://${store.customDomain}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-[11px] font-bold text-muted transition-colors hover:text-foreground"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        فتح
-                      </a>
+                      {store.customDomainStatus === "active" && (
+                        <a
+                          href={`https://${store.customDomain}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-[11px] font-bold text-muted transition-colors hover:text-foreground"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          فتح
+                        </a>
+                      )}
                     </div>
                   </div>
 
