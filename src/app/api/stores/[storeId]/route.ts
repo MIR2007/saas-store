@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { parseOnboarding, serializeOnboarding } from "@/lib/onboarding";
 import { parseThemeConfig } from "@/lib/themes";
 import {
   isValidMetaPixelId,
@@ -94,6 +95,23 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeI
         tiktokPixelId,
         tiktokEnabled: trackingConfig.tiktokEnabled !== false,
       });
+    }
+
+    // Mark onboarding steps as reviewed when the merchant saves the related
+    // settings. Design flags only come from the design editor; the settings
+    // page also sends themeColor, which should not complete that step alone.
+    const flags = parseOnboarding(store.onboarding);
+    let onboardingChanged = false;
+    if (shippingRates) {
+      flags.shipping = true;
+      onboardingChanged = true;
+    }
+    if (parsed.data.theme || themeConfig) {
+      flags.design = true;
+      onboardingChanged = true;
+    }
+    if (onboardingChanged) {
+      data.onboarding = serializeOnboarding(flags);
     }
 
     const updated = await prisma.store.update({

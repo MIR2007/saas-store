@@ -25,12 +25,18 @@ import {
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatCard from "@/components/dashboard/StatCard";
 import StatusBadge from "@/components/dashboard/StatusBadge";
+import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { primaryBtn, secondaryBtn, cardClass } from "@/lib/ui";
 import { storePublicUrl } from "@/lib/domains";
 import { getStoreTheme } from "@/lib/themes";
 import { daysUntil, subscriptionState } from "@/lib/store-status";
 import { cairoStartOfDay, cairoWeekday } from "@/lib/dates";
+import {
+  buildOnboardingSteps,
+  onboardingProgress,
+  parseOnboarding,
+} from "@/lib/onboarding";
 
 function firstImage(raw: string | undefined | null) {
   try {
@@ -137,6 +143,15 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
   const storeUrl = storePublicUrl(store.slug, store.customDomain, store.customDomainStatus);
   const storeLink = (path = "") => `/dashboard/stores/${store.id}${path}`;
 
+  const onboardingSteps = buildOnboardingSteps({
+    store,
+    productCount: store._count.products,
+    orderCount: store._count.orders,
+    storeUrl,
+  });
+  const onboarding = onboardingProgress(onboardingSteps);
+  const showOnboarding = onboarding.percent < 100 && !parseOnboarding(store.onboarding).hidden;
+
   return (
     <div className="p-5 sm:p-6 lg:p-8">
       <PageHeader
@@ -209,6 +224,18 @@ export default async function StoreDetailPage(props: PageProps<"/dashboard/store
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </div>
+      )}
+
+      {showOnboarding && (
+        <OnboardingChecklist
+          storeId={store.id}
+          storeName={store.name}
+          storeUrl={storeUrl}
+          steps={onboardingSteps}
+          done={onboarding.done}
+          total={onboarding.total}
+          percent={onboarding.percent}
+        />
       )}
 
       {/* Store banner */}
