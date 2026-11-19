@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { defaultShippingRates } from "@/lib/shipping";
 import { DEFAULT_STORE_COLOR, DEFAULT_STORE_THEME } from "@/lib/themes";
+import { hideBostaSecrets } from "@/lib/bosta";
 import { z } from "zod";
 
 const schema = z.object({
@@ -20,7 +21,7 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { products: true, orders: true } } },
   });
-  return NextResponse.json({ stores });
+  return NextResponse.json({ stores: stores.map(hideBostaSecrets) });
 }
 
 export async function POST(req: Request) {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
         shippingRates: JSON.stringify(defaultShippingRates()),
       },
     });
-    return NextResponse.json({ store });
+    return NextResponse.json({ store: hideBostaSecrets(store) });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "خطأ في الخادم" }, { status: 500 });

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatusBadge from "@/components/dashboard/StatusBadge";
+import BostaShipmentCard from "@/components/dashboard/BostaShipmentCard";
 import { formatDate, formatMoney, formatNumber, ORDER_STATUS, type OrderStatus } from "@/lib/format";
 import { orderShortId, orderWhatsAppMessage } from "@/lib/order-docs";
 import { whatsappChatUrl } from "@/lib/whatsapp";
@@ -50,9 +51,14 @@ type OrderDetail = {
   total: number;
   createdAt: string;
   items: OrderItem[];
+  carrier: string;
+  carrierRef: string;
+  trackingNumber: string;
+  carrierStatus: string;
+  carrierUpdatedAt: string | null;
 };
 
-type StoreInfo = { name: string; currency: string };
+type StoreInfo = { name: string; currency: string; bostaEnabled?: boolean };
 
 function firstImage(raw: string | undefined | null) {
   try {
@@ -88,6 +94,14 @@ export default function OrderDetailPage() {
     });
   }, [storeId, orderId]);
 
+  async function loadOrder() {
+    const res = await fetch(`/api/stores/${storeId}/orders/${orderId}`);
+    const d = await res.json();
+    setOrder(d.order);
+    setStatus(d.order?.status || "pending");
+    return d.order;
+  }
+
   async function updateStatus() {
     setLoading(true);
     setSaved(false);
@@ -96,10 +110,7 @@ export default function OrderDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
-    const res = await fetch(`/api/stores/${storeId}/orders/${orderId}`);
-    const d = await res.json();
-    setOrder(d.order);
-    setStatus(d.order?.status || status);
+    await loadOrder();
     setLoading(false);
     setSaved(true);
     router.refresh();
@@ -291,6 +302,17 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </section>
+
+          <BostaShipmentCard
+            storeId={storeId}
+            order={order}
+            currency={currency}
+            enabled={Boolean(store?.bostaEnabled)}
+            onChanged={async () => {
+              await loadOrder();
+              router.refresh();
+            }}
+          />
 
           {/* Quick actions */}
           <section className={`${cardClass} p-6`}>

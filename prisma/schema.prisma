@@ -51,6 +51,9 @@ model Store {
   shippingRates  String     @default("{}")
   themeConfig    String     @default("{}")
   trackingConfig String     @default("{}")
+  bostaEnabled       Boolean  @default(false)
+  bostaApiKey        String   @default("")
+  bostaConfig        String   @default("{}")
   customDomain       String?  @unique
   customDomainStatus String   @default("none")
   domainToken        String   @default("")
@@ -103,6 +106,11 @@ model Order {
   customerAddress String     @default("")
   notes          String      @default("")
   status         String      @default("pending")
+  carrier           String   @default("")
+  carrierRef        String   @default("")
+  trackingNumber    String   @default("")
+  carrierStatus     String   @default("")
+  carrierUpdatedAt  DateTime?
   subtotal       Float       @default(0)
   discount       Float       @default(0)
   couponCode     String      @default("")
@@ -111,6 +119,8 @@ model Order {
   createdAt      DateTime    @default(now())
   items          OrderItem[]
   walletTransactions WalletTransaction[]
+
+  @@index([storeId, trackingNumber])
 }
 
 model Coupon {

@@ -8,6 +8,7 @@ import {
   isValidTikTokPixelId,
   serializeTrackingConfig,
 } from "@/lib/tracking";
+import { hideBostaSecrets } from "@/lib/bosta";
 import { z } from "zod";
 
 async function ownsStore(storeId: string, userId: string) {
@@ -43,7 +44,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId
   const { storeId } = await ctx.params;
   const store = await ownsStore(storeId, session.userId);
   if (!store) return NextResponse.json({ error: "غير موجود" }, { status: 404 });
-  return NextResponse.json({ store });
+  return NextResponse.json({ store: hideBostaSecrets(store) });
 }
 
 export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeId]">) {
@@ -118,7 +119,7 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/stores/[storeI
       where: { id: storeId },
       data: data as never,
     });
-    return NextResponse.json({ store: updated });
+    return NextResponse.json({ store: hideBostaSecrets(updated) });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "خطأ في الخادم" }, { status: 500 });

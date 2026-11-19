@@ -131,6 +131,7 @@ const storeSections: NavSection[] = [
       { path: "/design", label: "تصميم المتجر والثيمات" },
       { path: "/settings", label: "إعدادات المتجر" },
       { path: "/settings/shipping", label: "مناطق الشحن" },
+      { path: "/settings/carriers", label: "شركات الشحن" },
       { path: "/settings/thank-you", label: "صفحة الشكر" },
       { path: "/settings/social", label: "روابط التواصل" },
       { path: "/settings/domain", label: "رابط المتجر والدومين" },
