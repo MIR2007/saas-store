@@ -16,9 +16,11 @@ import {
   MessageCircle,
   RefreshCw,
   Search,
+  Server,
   ShieldCheck,
   Trash2,
   Power,
+  Wrench,
 } from "lucide-react";
 import { cardClass, inputClass } from "@/lib/ui";
 import { formatDate } from "@/lib/format";
@@ -50,6 +52,32 @@ type AdminDomainStore = {
 
 type Filter = "all" | "active" | "verified" | "pending";
 
+type InfraStatus = {
+  configured: boolean;
+  cnameTarget: string;
+  saas: {
+    enabled: boolean;
+    quota: number;
+    used: number;
+    available: number;
+    error?: string;
+    message?: string;
+  };
+  dns: {
+    exists: boolean;
+    proxied: boolean;
+    type: string;
+    content: string;
+    error?: string;
+  };
+  fallback: {
+    origin: string;
+    status: string;
+    ok: boolean;
+    error?: string;
+  };
+};
+
 const STATUS: Record<string, { label: string; className: string }> = {
   active: { label: "متصل", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
   verified: { label: "جاهز للتفعيل", className: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
@@ -68,6 +96,9 @@ export default function AdminDomainsPage() {
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"success" | "info">("success");
   const [copied, setCopied] = useState("");
+  const [infra, setInfra] = useState<InfraStatus | null>(null);
+  const [infraBusy, setInfraBusy] = useState(false);
+  const [infraMessage, setInfraMessage] = useState("");
 
   async function load() {
     try {
@@ -110,6 +141,23 @@ export default function AdminDomainsPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/domains/setup")
+      .then(async (response) => {
+        if (response.status === 401) return null;
+        if (!response.ok) throw new Error("failed");
+        return response.json();
+      })
+      .then((data) => {
+        if (active && data) setInfra(data as InfraStatus);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, []);
 
   const counts = useMemo(
@@ -184,6 +232,25 @@ export default function AdminDomainsPage() {
     }
   }
 
+  async function setupInfra() {
+    setInfraBusy(true);
+    setInfraMessage("");
+    try {
+      const response = await fetch("/api/admin/domains/setup", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) {
+        setInfraMessage(data.error || "مش قادرين نجهّز البنية التحتية.");
+        return;
+      }
+      setInfra(data as InfraStatus);
+      setInfraMessage(data.message || "تم تجهيز البنية التحتية.");
+    } catch {
+      setInfraMessage("مشكلة في الاتصال، جرّب تاني.");
+    } finally {
+      setInfraBusy(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-surface" dir="rtl">
       <header className="border-b border-border bg-card/90 backdrop-blur-xl">
@@ -224,6 +291,87 @@ export default function AdminDomainsPage() {
           <Stat label="جاهز للتفعيل" value={counts.verified} tone="text-sky-600 dark:text-sky-400" />
           <Stat label="بانتظار DNS" value={counts.pending} tone="text-amber-600 dark:text-amber-400" />
         </div>
+
+        <section className={`${cardClass} mb-4 p-5`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                <Server className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-sm font-extrabold text-foreground">بنية الدومينات المخصصة</h2>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                  تجهيز Cloudflare for SaaS وربط{" "}
+                  <span className="font-mono" dir="ltr">
+                    {infra?.cnameTarget || "customers.beepanal.store"}
+                  </span>{" "}
+                  كـ Fallback Origin.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="https://dash.cloudflare.com/?to=/:account/:zone/ssl-tls/custom-hostnames"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[11px] font-bold text-muted transition-colors hover:text-foreground"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                فتح Cloudflare
+              </a>
+              <button
+                type="button"
+                onClick={setupInfra}
+                disabled={infraBusy || !infra?.configured}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {infraBusy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Wrench className="h-3.5 w-3.5" />
+                )}
+                {infraBusy ? "بنجهّز..." : "تجهيز البنية التحتية"}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <InfraChip
+              label="Cloudflare for SaaS"
+              ok={Boolean(infra?.saas.enabled)}
+              detail={
+                infra?.saas.enabled
+                  ? `${infra.saas.used} / ${infra.saas.quota} دومين مستخدم`
+                  : infra?.configured
+                    ? "مش مفعّل — فعّله من Cloudflare"
+                    : "إعدادات Cloudflare ناقصة على السيرفر"
+              }
+            />
+            <InfraChip
+              label="سجل DNS"
+              ok={Boolean(infra?.dns.exists && infra?.dns.proxied)}
+              detail={infra?.cnameTarget || "customers.beepanal.store"}
+            />
+            <InfraChip
+              label="Fallback Origin"
+              ok={Boolean(infra?.fallback.ok)}
+              detail={infra?.fallback.origin || "مش متظبط"}
+            />
+          </div>
+
+          {infra && !infra.saas.enabled && (
+            <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
+              <p className="font-bold">خطوات التفعيل (مرة واحدة):</p>
+              <ol className="mt-1.5 list-inside list-decimal space-y-1">
+                <li>افتح Cloudflare → زون beepanal.store → SSL/TLS → Custom Hostnames.</li>
+                <li>اضغط Enable وأدخل بيانات الدفع — أول 100 دومين مخصص مجانًا.</li>
+                <li>ارجع هنا واضغط «تجهيز البنية التحتية»؛ هنعمل DNS و Fallback Origin تلقائيًا.</li>
+              </ol>
+            </div>
+          )}
+
+          {infraMessage && <p className="mt-3 text-[11px] font-semibold text-muted">{infraMessage}</p>}
+        </section>
 
         <div className={`${cardClass} mb-4 p-4`}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -455,6 +603,33 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: str
     <div className={`${cardClass} p-4`}>
       <div className={`text-2xl font-extrabold ${tone || "text-foreground"}`}>{value}</div>
       <div className="mt-0.5 text-[11px] font-bold text-muted">{label}</div>
+    </div>
+  );
+}
+
+function InfraChip({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
+  return (
+    <div
+      className={`rounded-xl border px-3 py-2.5 ${
+        ok ? "border-emerald-500/20 bg-emerald-500/5" : "border-border bg-surface/60"
+      }`}
+    >
+      <p className="flex items-center gap-1.5 text-[10px] font-bold text-muted">
+        {ok ? (
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+        ) : (
+          <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+        )}
+        {label}
+      </p>
+      <p
+        className={`mt-1 text-[11px] font-semibold ${
+          ok ? "text-emerald-700 dark:text-emerald-300" : "text-muted"
+        }`}
+        dir="auto"
+      >
+        {detail}
+      </p>
     </div>
   );
 }
