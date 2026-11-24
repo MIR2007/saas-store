@@ -97,6 +97,26 @@ export function isApexDomain(domain: string) {
   return false;
 }
 
+/** The registrable root of a host, e.g. "shop.brand.com.eg" -> "brand.com.eg". */
+export function rootDomain(domain: string) {
+  const parts = normalizeHost(domain).split(".").filter(Boolean);
+  const suffix = parts.slice(-2).join(".");
+  const keep = MULTI_PART_SUFFIXES.includes(suffix) ? 3 : 2;
+  return parts.slice(-keep).join(".");
+}
+
+/**
+ * The "Host / Name" a merchant types in their registrar's DNS panel: "@" for
+ * the root itself, otherwise the part before the root ("www", "shop",
+ * "_beepanal-verify.shop").
+ */
+export function relativeDnsName(name: string, domain: string) {
+  const host = normalizeHost(name);
+  const root = rootDomain(domain);
+  if (host === root) return "@";
+  return host.endsWith(`.${root}`) ? host.slice(0, -(root.length + 1)) : host;
+}
+
 /** TXT record that proves the merchant controls the domain. */
 export function domainVerificationHost(domain: string) {
   return `_beepanal-verify.${normalizeHost(domain)}`;
