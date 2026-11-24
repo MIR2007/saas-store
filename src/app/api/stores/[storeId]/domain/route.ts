@@ -8,6 +8,8 @@ import {
   isApexDomain,
   isValidDomain,
   parseDomainState,
+  relativeDnsName,
+  rootDomain,
   serializeDomainState,
   subdomainFor,
   PLATFORM_DOMAIN,
@@ -74,15 +76,21 @@ function makeToken() {
 
 function recordsFor(domain: string, token: string) {
   const apex = isApexDomain(domain);
+  // `host` is the short form registrars ask for ("@", "www", "_beepanal-verify").
+  const withHost = <T extends { name: string }>(record: T) => ({
+    ...record,
+    host: relativeDnsName(record.name, domain),
+  });
   return {
     apex,
-    txt: {
+    root: rootDomain(domain),
+    txt: withHost({
       type: "TXT",
       name: domainVerificationHost(domain),
       value: token,
-    },
-    cname: routingRecord(domain, apex),
-    www: routingRecord(`www.${domain}`, false),
+    }),
+    cname: withHost(routingRecord(domain, apex)),
+    www: withHost(routingRecord(`www.${domain}`, false)),
   };
 }
 
