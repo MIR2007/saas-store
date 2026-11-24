@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { extractSubdomain, isPlatformHost, normalizeHost, PLATFORM_URL } from "@/lib/domains";
+import {
+  FORWARDED_HOST_HEADER,
+  PROXY_SECRET_HEADER,
+  STORE_HOST_HEADER,
+  trustedForwardedHost,
+} from "@/lib/domain-proxy";
 
 const COOKIE_NAME = "eo_session";
 const SECRET = new TextEncoder().encode(
@@ -35,36 +41,60 @@ async function slugForCustomDomain(host: string) {
   }
 }
 
-/** Rewrite a storefront request on the store's own host to the /[slug] routes. */
-function rewriteToStore(request: NextRequest, slug: string) {
+/**
+ * Rewrite a storefront request on the store's own host to the /[slug] routes.
+ * `publicHost` is the host the shopper actually typed (subdomain or custom
+ * domain); server components read it from STORE_HOST_HEADER.
+ */
+function rewriteToStore(request: NextRequest, slug: string, publicHost: string) {
   const pathname = request.nextUrl.pathname;
 
   // Canonicalise legacy links that still include the store slug.
   if (pathname === `/${slug}` || pathname.startsWith(`/${slug}/`)) {
     const url = request.nextUrl.clone();
     url.pathname = pathname.slice(slug.length + 1) || "/";
+    url.host = publicHost;
+    url.protocol = "https:";
+    url.port = "";
     return NextResponse.redirect(url, 308);
   }
 
   const url = request.nextUrl.clone();
   url.pathname = `/${slug}${pathname === "/" ? "" : pathname}`;
-  return NextResponse.rewrite(url);
+  const headers = new Headers(request.headers);
+  headers.set(STORE_HOST_HEADER, publicHost);
+  headers.delete(PROXY_SECRET_HEADER);
+  return NextResponse.rewrite(url, { request: { headers } });
 }
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const host = normalizeHost(request.headers.get("host"));
+  // Requests from the free custom-domain edge proxy carry the merchant host in
+  // a signed header; everything else uses the real Host header.
+  const forwardedHost = trustedForwardedHost(request.headers);
+  const host = forwardedHost || normalizeHost(request.headers.get("host"));
+
+  // Internal headers are only ever set by the edge proxy or by this function.
+  // A client sending them directly is spoofing; refuse instead of trusting them.
+  if (
+    !forwardedHost &&
+    (request.headers.has(STORE_HOST_HEADER) ||
+      request.headers.has(FORWARDED_HOST_HEADER) ||
+      request.headers.has(PROXY_SECRET_HEADER))
+  ) {
+    return new NextResponse("Bad request", { status: 400 });
+  }
 
   // ---- Own-domain routing: every store gets {slug}.beepanal.store + optional custom domain
   const subdomain = extractSubdomain(host);
   if (subdomain) {
-    return rewriteToStore(request, subdomain);
+    return rewriteToStore(request, subdomain, host);
   }
 
   const platform = isPlatformHost(host);
   if (!platform) {
     const slug = await slugForCustomDomain(host);
-    if (slug) return rewriteToStore(request, slug);
+    if (slug) return rewriteToStore(request, slug, host);
     // Unknown host must not fall through to the platform homepage.
     return new NextResponse("هذا الدومين غير مربوط بأي متجر على Bee Panal.", {
       status: 404,

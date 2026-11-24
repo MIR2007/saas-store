@@ -8,7 +8,8 @@ import {
   parseDomainState,
   serializeDomainState,
 } from "@/lib/domains";
-import { CUSTOM_DOMAIN_CNAME, removeCustomHostname } from "@/lib/cloudflare-domains";
+import { removeCustomHostname } from "@/lib/cloudflare-domains";
+import { detachProxyDomain, proxyModeEnabled, routingRecord } from "@/lib/domain-proxy";
 import { domainStatusMessage, refreshDomainConnection } from "@/lib/domain-service";
 import { z } from "zod";
 
@@ -64,11 +65,7 @@ export async function GET() {
                   name: domainVerificationHost(store.customDomain),
                   value: store.domainToken,
                 },
-                cname: {
-                  type: "CNAME",
-                  name: store.customDomain,
-                  value: CUSTOM_DOMAIN_CNAME,
-                },
+                cname: routingRecord(store.customDomain, isApexDomain(store.customDomain)),
               }
             : null,
       };
@@ -109,7 +106,8 @@ export async function POST(req: Request) {
 
   if (action === "remove") {
     try {
-      await removeCustomHostname(domain);
+      if (proxyModeEnabled()) await detachProxyDomain(domain);
+      else await removeCustomHostname(domain);
     } catch {
       // Continue clearing the local record even if Cloudflare is unavailable.
     }

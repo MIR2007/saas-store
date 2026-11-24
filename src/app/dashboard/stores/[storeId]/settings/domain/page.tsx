@@ -79,6 +79,7 @@ export default function StoreDomainPage() {
   const [checks, setChecks] = useState<Checks | null>(null);
   const [automated, setAutomated] = useState(true);
   const [warning, setWarning] = useState("");
+  const [mode, setMode] = useState<"proxy" | "cloudflare">("cloudflare");
   const [busy, setBusy] = useState<"save" | "verify" | "remove" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -96,6 +97,7 @@ export default function StoreDomainPage() {
     checks?: Checks | null;
     automated?: boolean;
     warning?: string;
+    mode?: "proxy" | "cloudflare";
   }) {
     setSavedDomain(data.customDomain || null);
     setDomain(data.customDomain || "");
@@ -110,6 +112,7 @@ export default function StoreDomainPage() {
     setChecks(data.checks || null);
     setAutomated(Boolean(data.automated));
     setWarning(data.warning || "");
+    if (data.mode) setMode(data.mode);
   }
 
   useEffect(() => {
@@ -415,7 +418,7 @@ export default function StoreDomainPage() {
                         copied={copied === "txt"}
                       />
                       <DnsRow
-                        type="CNAME"
+                        type={records?.cname.type || "CNAME"}
                         name={records?.cname.name || savedDomain}
                         value={records?.cname.value || dns.cname}
                         hint="لتوجيه الدومين لمتجرك على Bee Panal"
@@ -436,16 +439,27 @@ export default function StoreDomainPage() {
                       )}
                     </div>
 
-                    {records?.apex && (
+                    {mode === "proxy" ? (
                       <div className="mt-4 flex items-start gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-[11px] leading-relaxed text-muted">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <span>
-                          لأن ده الدومين الأساسي، بعض المزوّدين مش بيسمحوا بـ CNAME عليه. استخدم
-                          <b> ALIAS / ANAME / CNAME Flattening</b> لو متاح، أو اربط سب دومين زي
-                          <span className="font-mono"> shop.{savedDomain}</span>.
-                          لو دومينك على Cloudflare خلي السجل <b>Proxied</b>.
+                          امسح أي سجلات A أو AAAA أو CNAME قديمة على نفس الاسم قبل ما تضيف السجلات دي.
+                          لو دومينك على Cloudflare خلي السجلات <b>DNS only</b> (السحابة الرمادي) — مش Proxied —
+                          عشان شهادة الأمان تتعمل.
                         </span>
                       </div>
+                    ) : (
+                      records?.apex && (
+                        <div className="mt-4 flex items-start gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-[11px] leading-relaxed text-muted">
+                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          <span>
+                            لأن ده الدومين الأساسي، بعض المزوّدين مش بيسمحوا بـ CNAME عليه. استخدم
+                            <b> ALIAS / ANAME / CNAME Flattening</b> لو متاح، أو اربط سب دومين زي
+                            <span className="font-mono"> shop.{savedDomain}</span>.
+                            لو دومينك على Cloudflare خلي السجل <b>Proxied</b>.
+                          </span>
+                        </div>
+                      )
                     )}
                   </div>
 

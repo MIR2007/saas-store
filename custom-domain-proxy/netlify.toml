@@ -1,0 +1,7 @@
+# Bee Panal free custom-domain proxy. Deploy this folder as its own Netlify site.
+[build]
+  publish = "public"
+
+[[edge_functions]]
+  function = "bp-proxy"
+  path = "/*"

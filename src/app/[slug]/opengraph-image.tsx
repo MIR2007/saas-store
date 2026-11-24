@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { STORE_HOST_HEADER } from "@/lib/domain-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,8 @@ export const contentType = "image/png";
 async function currentOrigin() {
   try {
     const h = await headers();
-    const host = h.get("x-forwarded-host") || h.get("host") || "beepanal.store";
+    const host =
+      h.get(STORE_HOST_HEADER) || h.get("x-forwarded-host") || h.get("host") || "beepanal.store";
     const proto =
       h.get("x-forwarded-proto") ||
       (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");

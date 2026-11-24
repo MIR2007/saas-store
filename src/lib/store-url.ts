@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { normalizeHost } from "@/lib/domains";
+import { STORE_HOST_HEADER } from "@/lib/domain-proxy";
 
 /**
  * Returns the path prefix for links to a storefront.
@@ -8,7 +9,9 @@ import { normalizeHost } from "@/lib/domains";
  */
 export async function getStoreBase(slug: string, customDomain?: string | null) {
   const h = await headers();
-  const host = normalizeHost(h.get("host"));
+  // Set by src/proxy.ts; behind the free custom-domain proxy the Host header
+  // is the platform origin, not the shopper's domain.
+  const host = normalizeHost(h.get(STORE_HOST_HEADER) || h.get("host"));
 
   if (host === `${slug}.beepanal.store`) return "";
   if (customDomain && host === customDomain.toLowerCase()) return "";
