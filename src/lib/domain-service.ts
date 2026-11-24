@@ -138,13 +138,13 @@ export function domainStatusMessage(status: string, checks: DomainDnsState) {
   if (status === "active") return "تمام! الدومين متفعّل وجاهز ✅";
   if (checks.error) return checks.error;
   if (!checks.ownership && !checks.routing) {
-    return "لسه مش لاقيين سجلات DNS. ضيف سجل TXT للتحقق وسجل CNAME لتوجيه الدومين، وبعدها جرّب تاني بعد شوية.";
+    return "لسه مش لاقيين سجلات DNS. ضيف سجل TXT للتحقق وسجل التوجيه (A أو CNAME)، وبعدها جرّب تاني بعد شوية.";
   }
   if (!checks.ownership) {
-    return "سجل الـ CNAME ظاهر، بس سجل التحقق TXT لسه مش موجود أو قيمته مختلفة.";
+    return "سجل التوجيه ظاهر، بس سجل التحقق TXT لسه مش موجود أو قيمته مختلفة.";
   }
   if (!checks.routing) {
-    return "الملكية اتأكدت ✅ بس الدومين لسه مش موجه لـ Bee Panal. راجع سجل الـ CNAME.";
+    return "الملكية اتأكدت ✅ بس الدومين لسه مش موجه لـ Bee Panal. راجع سجل التوجيه (A أو CNAME).";
   }
   if (proxyModeEnabled()) {
     return "الدومين اتأكد ✅ بنجهّز شهادة الأمان (SSL) دلوقتي. ده بياخد من دقيقة لـ 15 دقيقة، دوس «تحقق الآن» تاني بعدها.";

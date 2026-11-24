@@ -51,12 +51,15 @@ export function routingTarget() {
 }
 
 /**
- * DNS record the merchant adds for routing. Apex domains in proxy mode use an
- * A record because most registrars refuse a CNAME on the root.
+ * DNS record the merchant adds for routing. In proxy mode every host (apex,
+ * www, or a subdomain) uses an A record on Netlify's load balancer IP:
+ * registrars refuse a CNAME on the root, and the addresses `*.netlify.app`
+ * resolves to were unreachable from Egyptian networks in testing, while the
+ * load balancer IP worked. `apex` is kept for the Cloudflare for SaaS mode.
  */
-export function routingRecord(domain: string, apex: boolean) {
+export function routingRecord(domain: string, _apex?: boolean) {
   const ip = proxyApexIp();
-  if (proxyModeEnabled() && apex && ip) {
+  if (proxyModeEnabled() && ip) {
     return { type: "A", name: domain, value: ip };
   }
   return { type: "CNAME", name: domain, value: routingTarget() };

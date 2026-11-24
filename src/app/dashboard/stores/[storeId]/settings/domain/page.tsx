@@ -428,7 +428,7 @@ export default function StoreDomainPage() {
                       />
                       {records?.apex && (
                         <DnsRow
-                          type="CNAME"
+                          type={records?.www.type || "CNAME"}
                           name={records?.www.name || `www.${savedDomain}`}
                           value={records?.www.value || dns.cname}
                           hint="اختياري — لنسخة www من الدومين"
@@ -478,7 +478,7 @@ export default function StoreDomainPage() {
                         {checked && (
                           <div className="mt-3 flex flex-wrap gap-2">
                             <CheckChip label="ملكية الدومين (TXT)" ok={ownershipDone} />
-                            <CheckChip label="توجيه الدومين (CNAME)" ok={routingDone} />
+                            <CheckChip label={`توجيه الدومين (${records?.cname.type || "CNAME"})`} ok={routingDone} />
                           </div>
                         )}
                         {!active && (

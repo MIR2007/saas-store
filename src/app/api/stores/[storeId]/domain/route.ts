@@ -82,11 +82,7 @@ function recordsFor(domain: string, token: string) {
       value: token,
     },
     cname: routingRecord(domain, apex),
-    www: {
-      type: "CNAME",
-      name: `www.${domain}`,
-      value: routingTarget(),
-    },
+    www: routingRecord(`www.${domain}`, false),
   };
 }
 

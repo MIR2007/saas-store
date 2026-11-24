@@ -60,8 +60,12 @@
 
 من صفحة «رابط المتجر والدومين» بيكتب دومينه، وبيضيف عند شركة الدومين:
 - `TXT` باسم `_beepanal-verify.mystore.com` (لإثبات الملكية)
-- `A` للدومين الأساسي على IP الـ Netlify، أو `CNAME` للسب دومين على `bp-domains.netlify.app`
-- `CNAME` لـ `www` على `bp-domains.netlify.app`
+- `A` للدومين على IP الـ load balancer بتاع Netlify (`CUSTOM_DOMAIN_PROXY_APEX_IP`)
+- `A` لـ `www` على نفس الـ IP
+
+ليه A مش CNAME؟ في التجربة من شبكات مصرية، العناوين اللي `*.netlify.app` بيروح لها
+ماكانتش بتفتح خالص، لكن الـ load balancer IP (`75.2.60.5`) كان شغال. الـ CNAME على
+`bp-domains.netlify.app` كان هيخلي الزباين في مصر ميفتحوش المتجر.
 
 لما يدوس «تحقق الآن»: المنصة بتتأكد من الـ DNS، تضيف الدومين لموقع Netlify بالـ API،
 تطلب شهادة SSL، وتختبر `https://mystore.com/.well-known/beepanal-proxy`.
