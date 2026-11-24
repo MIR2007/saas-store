@@ -15,14 +15,20 @@ $bytes = New-Object byte[] 32
 [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
 $secret = -join ($bytes | ForEach-Object { $_.ToString("x2") })
 
+$stateFile = Join-Path $proxyDir ".netlify\state.json"
 Push-Location $proxyDir
 try {
-  Write-Host "`n[1/5] Creating Netlify site '$siteName'..." -ForegroundColor Cyan
-  netlify sites:create --name $siteName --disable-linking
-  if ($LASTEXITCODE -ne 0) { throw "netlify sites:create failed (name taken? try another)." }
-  netlify link --name $siteName
-  if ($LASTEXITCODE -ne 0) { throw "netlify link failed." }
-  $state = Get-Content (Join-Path $proxyDir ".netlify\state.json") -Raw | ConvertFrom-Json
+  if (Test-Path $stateFile) {
+    # A previous run already created and linked the site; reuse it.
+    Write-Host "`n[1/5] Netlify site already linked, reusing it." -ForegroundColor Cyan
+  } else {
+    Write-Host "`n[1/5] Creating Netlify site '$siteName'..." -ForegroundColor Cyan
+    netlify sites:create --name $siteName --disable-linking
+    if ($LASTEXITCODE -ne 0) { throw "netlify sites:create failed (name taken? try another)." }
+    netlify link --name $siteName
+    if ($LASTEXITCODE -ne 0) { throw "netlify link failed." }
+  }
+  $state = Get-Content $stateFile -Raw | ConvertFrom-Json
   $siteId = $state.siteId
   if (-not $siteId) { throw "Could not read the Netlify site id from .netlify\state.json." }
 

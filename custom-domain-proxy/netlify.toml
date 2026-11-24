@@ -1,6 +1,13 @@
 # Bee Panal free custom-domain proxy. Deploy this folder as its own Netlify site.
+# It is a static page plus one edge function: no build step, and it must not
+# pick up the Next.js app in the parent folder.
 [build]
   publish = "public"
+  command = "echo 'no build needed'"
+
+[build.environment]
+  # The parent folder is a Next.js app; stop Netlify from auto-adding its runtime.
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
 
 [[edge_functions]]
   function = "bp-proxy"
