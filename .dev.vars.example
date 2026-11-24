@@ -21,3 +21,12 @@ GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 # Optional: override the callback URL (defaults to NEXT_PUBLIC_SITE_URL or localhost).
 GOOGLE_REDIRECT_URI="https://beepanal.store"
+
+# Free custom-domain mode (Netlify edge proxy in /custom-domain-proxy).
+# When CUSTOM_DOMAIN_PROXY_TARGET is set, merchants point their domains at the
+# proxy instead of Cloudflare for SaaS. Leave empty to use Cloudflare for SaaS.
+CUSTOM_DOMAIN_PROXY_TARGET=""          # e.g. bp-domains.netlify.app
+CUSTOM_DOMAIN_PROXY_SECRET=""          # long random string, same as BP_PROXY_SECRET on Netlify
+CUSTOM_DOMAIN_PROXY_APEX_IP=""         # Netlify load balancer IP for apex A records
+NETLIFY_API_TOKEN=""                   # Netlify personal access token
+NETLIFY_SITE_ID=""                     # ID of the proxy site on Netlify

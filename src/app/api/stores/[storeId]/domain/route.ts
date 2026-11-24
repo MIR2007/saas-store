@@ -14,7 +14,6 @@ import {
   type DomainState,
 } from "@/lib/domains";
 import {
-  CUSTOM_DOMAIN_CNAME,
   addCustomHostname,
   cloudflareDomainError,
   cloudflareDomainsConfigured,
@@ -32,7 +31,24 @@ import {
   domainStatusMessage,
   refreshDomainConnection,
 } from "@/lib/domain-service";
+import {
+  detachProxyDomain,
+  domainMode,
+  proxyModeEnabled,
+  routingRecord,
+  routingTarget,
+} from "@/lib/domain-proxy";
 import { z } from "zod";
+
+/** Removes a domain from whichever edge (Cloudflare for SaaS or the free proxy) serves it. */
+async function detachDomain(domain: string) {
+  try {
+    if (proxyModeEnabled()) await detachProxyDomain(domain);
+    else await removeCustomHostname(domain);
+  } catch {
+    // The local record is still updated even if the edge cleanup fails.
+  }
+}
 
 const schema = z.object({ domain: z.string().min(3) });
 
@@ -57,23 +73,16 @@ function makeToken() {
 }
 
 function recordsFor(domain: string, token: string) {
+  const apex = isApexDomain(domain);
   return {
-    apex: isApexDomain(domain),
+    apex,
     txt: {
       type: "TXT",
       name: domainVerificationHost(domain),
       value: token,
     },
-    cname: {
-      type: "CNAME",
-      name: domain,
-      value: CUSTOM_DOMAIN_CNAME,
-    },
-    www: {
-      type: "CNAME",
-      name: `www.${domain}`,
-      value: CUSTOM_DOMAIN_CNAME,
-    },
+    cname: routingRecord(domain, apex),
+    www: routingRecord(`www.${domain}`, false),
   };
 }
 
@@ -94,7 +103,8 @@ function payload(
     automated: extras.automated,
     warning: extras.warning || "",
     platformDomain: PLATFORM_DOMAIN,
-    dns: recommendedDns(),
+    mode: domainMode(),
+    dns: proxyModeEnabled() ? { a: [], cname: routingTarget() } : recommendedDns(),
     token,
     records: store.customDomain && token ? recordsFor(store.customDomain, token) : null,
   };
@@ -118,10 +128,12 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/stores/[storeId
   const state = parseDomainState(store.domainVerification);
   let status = store.customDomainStatus || (store.customDomain ? "pending" : "none");
   if (store.customDomain && status === "none") status = "pending";
-  let automated = cloudflareDomainsConfigured();
+  let automated = proxyModeEnabled() || cloudflareDomainsConfigured();
   const warning = "";
 
-  if (store.customDomain && automated) {
+  if (proxyModeEnabled()) {
+    // Status is refreshed by PATCH (DNS + HTTPS probe); nothing to poll here.
+  } else if (store.customDomain && automated) {
     const hostname = await getCustomHostname(store.customDomain);
     if (hostname.ok && hostname.data) {
       state.cloudflare = verificationRecords(hostname.data);
@@ -180,13 +192,9 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
     return NextResponse.json({ error: "الدومين ده مربوط بمتجر تاني على Bee Panal." }, { status: 409 });
   }
 
-  // Replacing a domain: detach the previous Cloudflare hostname first.
+  // Replacing a domain: detach the previous one from the edge first.
   if (store.customDomain && store.customDomain !== domain) {
-    try {
-      await removeCustomHostname(store.customDomain);
-    } catch {
-      // The new domain is still saved even if cleanup fails.
-    }
+    await detachDomain(store.customDomain);
   }
 
   const token = makeToken();
@@ -195,21 +203,26 @@ export async function POST(req: Request, ctx: RouteContext<"/api/stores/[storeId
   let automated = false;
   let warning = "";
 
-  const added = await addCustomHostname(domain);
-  if (added.ok && added.data) {
+  if (proxyModeEnabled()) {
+    // Free proxy mode: the domain is attached to the proxy after DNS verification (PATCH).
     automated = true;
-    cloudflareRecords = verificationRecords(added.data);
-    if (isCustomHostnameActive(added.data)) status = "active";
-  } else if (isSaasQuotaError(added.errors)) {
-    warning = QUOTA_WARNING;
-  } else if (added.status === 503) {
-    warning = "الإضافة التلقائية غير مفعّلة حاليًا. الدومين اتحفظ، وفريق Bee Panal هيفعّله لك.";
-  } else if (added.status === 401 || added.status === 403) {
-    // The stored Cloudflare token is missing/expired. Save the domain anyway so
-    // the merchant sees the DNS instructions and support can attach it manually.
-    warning = TOKEN_WARNING;
   } else {
-    return NextResponse.json({ error: cloudflareDomainError(added) }, { status: 400 });
+    const added = await addCustomHostname(domain);
+    if (added.ok && added.data) {
+      automated = true;
+      cloudflareRecords = verificationRecords(added.data);
+      if (isCustomHostnameActive(added.data)) status = "active";
+    } else if (isSaasQuotaError(added.errors)) {
+      warning = QUOTA_WARNING;
+    } else if (added.status === 503) {
+      warning = "الإضافة التلقائية غير مفعّلة حاليًا. الدومين اتحفظ، وفريق Bee Panal هيفعّله لك.";
+    } else if (added.status === 401 || added.status === 403) {
+      // The stored Cloudflare token is missing/expired. Save the domain anyway so
+      // the merchant sees the DNS instructions and support can attach it manually.
+      warning = TOKEN_WARNING;
+    } else {
+      return NextResponse.json({ error: cloudflareDomainError(added) }, { status: 400 });
+    }
   }
 
   const state: DomainState = {
@@ -276,11 +289,7 @@ export async function DELETE(_req: Request, ctx: RouteContext<"/api/stores/[stor
   if (!store) return NextResponse.json({ error: "غير موجود" }, { status: 404 });
 
   if (store.customDomain) {
-    try {
-      await removeCustomHostname(store.customDomain);
-    } catch {
-      // Continue clearing the local record even if Cloudflare is unavailable.
-    }
+    await detachDomain(store.customDomain);
   }
 
   await prisma.store.update({

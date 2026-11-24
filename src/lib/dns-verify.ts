@@ -1,5 +1,5 @@
-import { CUSTOM_DOMAIN_CNAME } from "@/lib/cloudflare-domains";
 import { domainVerificationHost, normalizeHost, type DomainDnsState } from "@/lib/domains";
+import { proxyApexIp, proxyModeEnabled, routingTarget } from "@/lib/domain-proxy";
 
 type DohAnswer = { name?: string; type?: number; data?: string };
 
@@ -53,6 +53,19 @@ function cleanTarget(value: string | undefined) {
   return normalizeHost((value || "").trim());
 }
 
+/** True when `host` routes to the custom-domain target (CNAME or the proxy apex IP). */
+export async function pointsToRoutingTarget(host: string) {
+  const name = normalizeHost(host);
+  const target = normalizeHost(routingTarget());
+  const [cname, a] = await Promise.all([lookup(name, "CNAME"), lookup(name, "A")]);
+  const cnameFound = cname.answers.find((answer) => answer.type === 5)?.data;
+  if (cnameFound && cleanTarget(cnameFound) === target) return true;
+  const apexIp = proxyModeEnabled() ? proxyApexIp() : "";
+  return Boolean(
+    apexIp && a.answers.some((answer) => answer.type === 1 && answer.data === apexIp)
+  );
+}
+
 /**
  * Verifies both parts of a custom domain connection:
  *  1. Ownership: TXT at `_beepanal-verify.<domain>` matches the stored token.
@@ -70,7 +83,7 @@ export async function checkDomainDns({
 }): Promise<DomainDnsState> {
   const host = normalizeHost(domain);
   const txtName = domainVerificationHost(host);
-  const target = normalizeHost(CUSTOM_DOMAIN_CNAME);
+  const target = normalizeHost(routingTarget());
   const checkedAt = new Date().toISOString();
 
   if (!host || !token) {
@@ -121,10 +134,13 @@ export async function checkDomainDns({
     .map((answer) => answer.data as string);
   const flattenedMatches =
     platformIps.length > 0 && domainIps.some((ip) => platformIps.includes(ip));
+  // In free proxy mode, apex domains point an A record at the proxy's load balancer.
+  const apexIp = proxyModeEnabled() ? proxyApexIp() : "";
+  const apexIpMatches = Boolean(apexIp && domainIps.includes(apexIp));
 
   return {
     ownership,
-    routing: cnameMatches || flattenedMatches,
+    routing: cnameMatches || flattenedMatches || apexIpMatches,
     checkedAt,
     txtName,
     cnameTarget: target,

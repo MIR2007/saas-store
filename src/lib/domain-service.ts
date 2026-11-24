@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { checkDomainDns } from "@/lib/dns-verify";
+import { checkDomainDns, pointsToRoutingTarget } from "@/lib/dns-verify";
 import {
   parseDomainState,
   serializeDomainState,
@@ -14,6 +14,12 @@ import {
   isSaasQuotaError,
   verificationRecords,
 } from "@/lib/cloudflare-domains";
+import {
+  attachProxyDomain,
+  detachProxyDomain,
+  probeProxyDomain,
+  proxyModeEnabled,
+} from "@/lib/domain-proxy";
 
 export const DOMAIN_QUOTA_WARNING =
   "ربط الدومينات المخصصة هيتفعّل قريبًا. الدومين اتحفظ، وفريق Bee Panal هيكمّل التفعيل.";
@@ -48,11 +54,27 @@ export async function refreshDomainConnection(store: {
     token: store.domainToken,
   });
 
-  let automated = cloudflareDomainsConfigured();
+  const proxyMode = proxyModeEnabled();
+  let automated = proxyMode || cloudflareDomainsConfigured();
   let warning = "";
   let cloudflareActive = false;
+  let proxyActive = false;
 
-  if (automated) {
+  if (proxyMode) {
+    // Free mode: once DNS is correct, attach the domain to the edge proxy and
+    // mark it active only after HTTPS actually answers through the proxy.
+    if (checks.ownership && checks.routing) {
+      const hosts = [store.customDomain];
+      const www = `www.${store.customDomain}`;
+      if (await pointsToRoutingTarget(www)) hosts.push(www);
+      await attachProxyDomain(hosts);
+      proxyActive = await probeProxyDomain(store.customDomain);
+    } else if (store.customDomainStatus === "active" || store.customDomainStatus === "verified") {
+      // DNS moved away from the proxy: drop the alias so it cannot block
+      // certificate renewals for other stores.
+      await detachProxyDomain(store.customDomain);
+    }
+  } else if (automated) {
     const existing = await getCustomHostname(store.customDomain);
     if (existing.ok && existing.data) {
       state.cloudflare = verificationRecords(existing.data);
@@ -80,8 +102,12 @@ export async function refreshDomainConnection(store: {
   }
 
   let status = store.customDomainStatus || "pending";
-  if (cloudflareActive) {
+  if (cloudflareActive || proxyActive) {
     status = "active";
+  } else if (proxyMode && !(checks.ownership && checks.routing)) {
+    // In proxy mode the DNS check is authoritative: a domain moved away from
+    // the proxy must stop serving the store.
+    status = "pending";
   } else if (status !== "active") {
     status = checks.ownership && checks.routing ? "verified" : "pending";
   }
@@ -112,13 +138,16 @@ export function domainStatusMessage(status: string, checks: DomainDnsState) {
   if (status === "active") return "تمام! الدومين متفعّل وجاهز ✅";
   if (checks.error) return checks.error;
   if (!checks.ownership && !checks.routing) {
-    return "لسه مش لاقيين سجلات DNS. ضيف سجل TXT للتحقق وسجل CNAME لتوجيه الدومين، وبعدها جرّب تاني بعد شوية.";
+    return "لسه مش لاقيين سجلات DNS. ضيف سجل TXT للتحقق وسجل التوجيه (A أو CNAME)، وبعدها جرّب تاني بعد شوية.";
   }
   if (!checks.ownership) {
-    return "سجل الـ CNAME ظاهر، بس سجل التحقق TXT لسه مش موجود أو قيمته مختلفة.";
+    return "سجل التوجيه ظاهر، بس سجل التحقق TXT لسه مش موجود أو قيمته مختلفة.";
   }
   if (!checks.routing) {
-    return "الملكية اتأكدت ✅ بس الدومين لسه مش موجه لـ Bee Panal. راجع سجل الـ CNAME.";
+    return "الملكية اتأكدت ✅ بس الدومين لسه مش موجه لـ Bee Panal. راجع سجل التوجيه (A أو CNAME).";
+  }
+  if (proxyModeEnabled()) {
+    return "الدومين اتأكد ✅ بنجهّز شهادة الأمان (SSL) دلوقتي. ده بياخد من دقيقة لـ 15 دقيقة، دوس «تحقق الآن» تاني بعدها.";
   }
   return "الدومين اتأكد وجاهز. فريق Bee Panal هيكمّل تفعيل شهادة الأمان (SSL) وتشغيل الدومين.";
 }
